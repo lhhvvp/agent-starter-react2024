@@ -102,9 +102,13 @@ You'll also need to configure your LiveKit credentials in `.env.local` (copy `.e
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
 LIVEKIT_URL=https://your-livekit-server-url
+# Optional: target a specific agent registered with WorkerOptions.agent_name
+NEXT_PUBLIC_AGENT_NAME=gjj-assistant
 ```
 
 These are required for the voice agent functionality to work with your LiveKit project.
+
+If you set `WorkerOptions.agent_name` on your agent worker, you must also target that agent from the frontend. Set `NEXT_PUBLIC_AGENT_NAME` to your worker’s name (for example, `gjj-assistant`) so the app will explicitly dispatch that agent to each new room.
 
 ## Contributing
 

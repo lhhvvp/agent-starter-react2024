@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ConnectionDetails } from '@/app/api/connection-details/route';
 
-export default function useConnectionDetails() {
+export default function useConnectionDetails(agentName?: string) {
   // Generate room connection details, including:
   //   - A random Room name
   //   - A random Participant name
@@ -19,6 +19,11 @@ export default function useConnectionDetails() {
       process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details',
       window.location.origin
     );
+    const envAgentName = process.env.NEXT_PUBLIC_AGENT_NAME;
+    const finalAgentName = agentName ?? envAgentName;
+    if (finalAgentName) {
+      url.searchParams.set('agentName', finalAgentName);
+    }
     fetch(url.toString())
       .then((res) => res.json())
       .then((data) => {
@@ -27,11 +32,10 @@ export default function useConnectionDetails() {
       .catch((error) => {
         console.error('Error fetching connection details:', error);
       });
-  }, []);
+  }, [agentName]);
 
-  useEffect(() => {
-    fetchConnectionDetails();
-  }, [fetchConnectionDetails]);
+  // Note: do not auto-fetch on mount. Call refreshConnectionDetails
+  // when the user starts the call, to avoid pre-dispatching the agent.
 
   return { connectionDetails, refreshConnectionDetails: fetchConnectionDetails };
 }

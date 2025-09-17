@@ -4,12 +4,16 @@ interface WelcomeProps {
   disabled: boolean;
   startButtonText: string;
   onStartCall: () => void;
+  agentName?: string;
+  onAgentNameChange?: (name: string) => void;
 }
 
 export const Welcome = ({
   disabled,
   startButtonText,
   onStartCall,
+  agentName,
+  onAgentNameChange,
   ref,
 }: React.ComponentProps<'div'> & WelcomeProps) => {
   return (
@@ -35,6 +39,21 @@ export const Welcome = ({
       <p className="text-fg1 max-w-prose pt-1 leading-6 font-medium">
         Chat live with your voice AI agent
       </p>
+      <div className="mt-6 w-64 text-left">
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
+          Agent name (optional)
+        </label>
+        <input
+          className="w-full rounded-md border border-button-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          type="text"
+          placeholder="e.g. gjj-assistant"
+          value={agentName ?? ''}
+          onChange={(e) => onAgentNameChange?.(e.target.value)}
+        />
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Leave blank to connect any available agent.
+        </p>
+      </div>
       <Button variant="primary" size="lg" onClick={onStartCall} className="mt-6 w-64 font-mono">
         {startButtonText}
       </Button>

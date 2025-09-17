@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
+import {
+  AccessToken,
+  AgentDispatchClient,
+  type AccessTokenOptions,
+  type VideoGrant,
+} from 'livekit-server-sdk';
 
 // NOTE: you are expected to define the following environment variables in `.env.local`:
 const API_KEY = process.env.LIVEKIT_API_KEY;
@@ -16,7 +21,7 @@ export type ConnectionDetails = {
   participantToken: string;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     if (LIVEKIT_URL === undefined) {
       throw new Error('LIVEKIT_URL is not defined');
@@ -28,6 +33,9 @@ export async function GET() {
       throw new Error('LIVEKIT_API_SECRET is not defined');
     }
 
+    const url = new URL(request.url);
+    const agentName = url.searchParams.get('agentName') ?? undefined;
+
     // Generate participant token
     const participantName = 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
@@ -36,6 +44,14 @@ export async function GET() {
       { identity: participantIdentity, name: participantName },
       roomName
     );
+
+    // If a specific agent name is provided, explicitly dispatch that agent to the room
+    if (agentName) {
+      // AgentDispatchClient expects http(s) host, not ws(s)
+      const apiHost = LIVEKIT_URL.replace(/^ws(s)?:\/\//, 'http$1://');
+      const dispatchClient = new AgentDispatchClient(apiHost, API_KEY, API_SECRET);
+      await dispatchClient.createDispatch(roomName, agentName);
+    }
 
     // Return connection details
     const data: ConnectionDetails = {

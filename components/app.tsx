@@ -21,7 +21,10 @@ interface AppProps {
 export function App({ appConfig }: AppProps) {
   const room = useMemo(() => new Room(), []);
   const [sessionStarted, setSessionStarted] = useState(false);
-  const { connectionDetails, refreshConnectionDetails } = useConnectionDetails();
+  const [agentName, setAgentName] = useState<string>(process.env.NEXT_PUBLIC_AGENT_NAME ?? '');
+  const { connectionDetails, refreshConnectionDetails } = useConnectionDetails(
+    agentName || undefined
+  );
 
   useEffect(() => {
     const onDisconnected = () => {
@@ -79,7 +82,14 @@ export function App({ appConfig }: AppProps) {
       <MotionWelcome
         key="welcome"
         startButtonText={startButtonText}
-        onStartCall={() => setSessionStarted(true)}
+        onStartCall={() => {
+          // Fetch connection details only when starting the call,
+          // so that we don't dispatch the agent before the user starts.
+          refreshConnectionDetails();
+          setSessionStarted(true);
+        }}
+        agentName={agentName}
+        onAgentNameChange={setAgentName}
         disabled={sessionStarted}
         initial={{ opacity: 0 }}
         animate={{ opacity: sessionStarted ? 0 : 1 }}

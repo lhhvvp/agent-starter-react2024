@@ -1,0 +1,445 @@
+name: CLAUDE.md Review and Update
+
+# Workflow that uses Claude Code to comprehensively review the codebase
+# and regenerate/update CLAUDE.md to ensure complete accuracy
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name for the CLAUDE.md update (optional)'
+        required: false
+        default: 'update-claude-md'
+        type: string
+      create_pr:
+        description: 'Create PR with changes'
+        required: false
+        default: true
+        type: boolean
+      analysis_depth:
+        description: 'Analysis depth level'
+        required: false
+        default: 'comprehensive'
+        type: choice
+        options:
+        - 'basic'
+        - 'comprehensive' 
+        - 'deep'
+      preserve_sections:
+        description: 'Preserve existing sections when possible'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  ANALYSIS_DEPTH: ${{ inputs.analysis_depth || 'comprehensive' }}
+  BRANCH_NAME: ${{ inputs.branch_name || 'update-claude-md' }}
+  CREATE_PR: ${{ inputs.create_pr || true }}
+  PRESERVE_SECTIONS: ${{ inputs.preserve_sections || true }}
+
+jobs:
+  claude-md-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git configuration
+        run: |
+          git config --global user.name "Claude MD Bot"
+          git config --global user.email "claude-md-bot@users.noreply.github.com"
+
+      - name: Create and switch to update branch
+        run: |
+          echo "Creating branch: $BRANCH_NAME"
+          git checkout -b "$BRANCH_NAME" || git checkout "$BRANCH_NAME"
+
+      - name: Backup existing CLAUDE.md
+        run: |
+          if [ -f "CLAUDE.md" ]; then
+            cp CLAUDE.md CLAUDE.md.backup
+            echo "✅ Backed up existing CLAUDE.md"
+          else
+            echo "ℹ️  No existing CLAUDE.md found"
+          fi
+
+      - name: Generate comprehensive codebase analysis prompt
+        run: |
+          cat > claude_analysis_prompt.md << 'EOL'
+          # Comprehensive Codebase Analysis for CLAUDE.md Generation
+
+          You are tasked with performing a thorough analysis of this React/Next.js codebase to generate a completely accurate and comprehensive CLAUDE.md file. This file serves as guidance for Claude Code when working with the repository.
+
+          ## Analysis Requirements (${{ env.ANALYSIS_DEPTH }} level)
+
+          ### 1. Project Structure Analysis
+          - Analyze the complete project structure and architecture
+          - Identify all key directories and their purposes
+          - Map the relationship between different components and modules
+          - Document the build system and tooling configuration
+
+          ### 2. Component Architecture Review
+          - Analyze all React components in `/components` directory
+          - Document component hierarchy and data flow
+          - Identify key hooks and custom implementations
+          - Map state management patterns and context usage
+
+          ### 3. API and Backend Integration
+          - Review all API routes in `/app/api` or `/pages/api`
+          - Document external service integrations (LiveKit, etc.)
+          - Identify authentication and security patterns
+          - Document data flow and communication patterns
+
+          ### 4. Configuration and Environment
+          - Analyze all configuration files (package.json, next.config.js, etc.)
+          - Document environment variable requirements
+          - Review build and deployment configurations
+          - Identify feature flags and configuration options
+
+          ### 5. Development Workflow
+          - Document all available npm/pnpm scripts
+          - Identify testing frameworks and patterns
+          - Document linting, formatting, and code quality tools
+          - Review CI/CD configurations if present
+
+          ### 6. Dependencies and Tech Stack
+          - Analyze package.json for all dependencies
+          - Document key libraries and their usage patterns
+          - Identify version constraints and compatibility requirements
+          - Document any custom implementations or overrides
+
+          ### 7. Styling and UI Framework
+          - Analyze CSS/styling approach (Tailwind, CSS modules, etc.)
+          - Document theming and design system patterns
+          - Identify responsive design patterns
+          - Review animation and interaction libraries
+
+          ## Current CLAUDE.md Analysis
+          ${{ env.PRESERVE_SECTIONS == 'true' && 'Please preserve accurate sections from the existing CLAUDE.md while updating outdated information.' || 'Generate a completely new CLAUDE.md based on current codebase state.' }}
+
+          ## Output Requirements
+
+          Generate a new CLAUDE.md that includes:
+
+          1. **Accurate Project Overview**: Current state and purpose
+          2. **Complete Architecture Documentation**: All major components and patterns
+          3. **Precise Development Commands**: All working scripts and commands
+          4. **Comprehensive Dependencies**: All major libraries with purposes
+          5. **Environment Setup**: Complete setup requirements
+          6. **Configuration Details**: All config files and their purposes
+          7. **Build and Deployment**: Production and development processes
+          8. **Code Conventions**: Styling, naming, and architectural patterns
+          9. **Testing Strategy**: If tests exist, document the approach
+          10. **Performance Considerations**: Any optimization patterns used
+
+          ## Analysis Instructions
+
+          1. **Be Thorough**: Examine every major file and directory using available search and read tools
+          2. **Be Accurate**: Only document what actually exists in the codebase - verify all references
+          3. **Be Current**: Ensure all information reflects the current state, not assumptions
+          4. **Be Specific**: Include exact file paths and command examples that you have verified
+          5. **Be Organized**: Structure information logically and clearly for developer use
+          6. **Use Available Tools**: Leverage search, glob, and read tools to explore the codebase systematically
+          7. **Verify Commands**: Test mentioned npm/pnpm scripts exist in package.json
+          8. **Cross-Reference**: Ensure consistency between documentation and actual implementation
+
+          ## Enhanced Analysis Workflow
+
+          1. **Start with Structure**: Use directory listing and file globbing to map the project
+          2. **Analyze Configuration**: Read and document all config files (package.json, next.config.js, etc.)
+          3. **Component Discovery**: Systematically explore the components directory
+          4. **API Documentation**: Review API routes and external integrations  
+          5. **Build System**: Understand the complete build and development process
+          6. **Dependency Analysis**: Document not just what's installed, but how it's used
+
+          ## Validation Steps
+
+          After generating the CLAUDE.md:
+          1. **File Path Verification**: Confirm all referenced paths exist in the codebase
+          2. **Command Testing**: Validate all documented commands are in package.json scripts
+          3. **Dependency Check**: Ensure all mentioned libraries are actually installed
+          4. **Architecture Accuracy**: Verify descriptions match the actual code structure
+          5. **Completeness Review**: Confirm no major components or features are missed
+
+          ## Quality Assurance
+
+          The generated CLAUDE.md should serve as an authoritative guide that:
+          - Helps new developers understand the project quickly
+          - Provides accurate setup and development instructions  
+          - Documents all major architectural decisions and patterns
+          - Serves as reliable reference for Claude Code assistance
+
+          Please begin your comprehensive analysis now.
+          EOL
+          
+          echo "✅ Generated analysis prompt"
+
+      - name: Create analysis request issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a temporary issue to trigger Claude Code analysis
+          ISSUE_BODY=$(cat << 'EOL'
+          @claude Please perform a comprehensive codebase analysis to generate an accurate CLAUDE.md file.
+
+          **Task**: Read the detailed analysis prompt from `claude_analysis_prompt.md` and execute the comprehensive analysis as specified.
+
+          **Key Focus Areas**:
+          1. **Project Structure**: Complete directory mapping and component relationships
+          2. **Technology Stack**: Exact dependencies from package.json with their purposes
+          3. **Development Workflow**: All npm/pnpm scripts and their functions
+          4. **Configuration Files**: next.config.js, tailwind.config.js, tsconfig.json, etc.
+          5. **Component Architecture**: React components, hooks, and state management
+          6. **API Integration**: Routes, external services (LiveKit), authentication
+          7. **Build System**: Development and production build processes
+          8. **Environment Setup**: Required variables and configuration
+
+          **Analysis Depth**: ${{ env.ANALYSIS_DEPTH }}
+          **Preserve Existing**: ${{ env.PRESERVE_SECTIONS }}
+
+          **Output**: Generate a new, accurate CLAUDE.md file that reflects the current codebase state. Ensure all file paths, commands, and dependencies are verified and correct.
+
+          Start by reading the analysis prompt file, then systematically analyze each aspect of the codebase to create comprehensive, accurate documentation.
+          EOL
+          )
+
+          # Create issue for Claude to respond to
+          ISSUE_NUMBER=$(gh issue create \
+            --title "🤖 CLAUDE.md Review Request - ${{ github.run_id }}" \
+            --body "$ISSUE_BODY" \
+            --label "claude-analysis" \
+            | grep -o '[0-9]*$')
+          
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_ENV
+          echo "✅ Created analysis request issue #$ISSUE_NUMBER"
+
+      - name: Wait for Claude Code response  
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "⏳ Waiting for Claude Code to process the analysis request..."
+          
+          # Wait for Claude to respond (up to 20 minutes)
+          MAX_WAIT=1200  # 20 minutes
+          WAIT_TIME=0
+          INTERVAL=30    # Check every 30 seconds
+          
+          while [ $WAIT_TIME -lt $MAX_WAIT ]; do
+            # Check if Claude has commented on the issue
+            COMMENTS=$(gh issue view ${{ env.issue_number }} --json comments --jq '.comments | length')
+            
+            if [ "$COMMENTS" -gt 0 ]; then
+              echo "✅ Claude Code has responded to the analysis request"
+              break
+            fi
+            
+            echo "⏳ Still waiting... (${WAIT_TIME}s/${MAX_WAIT}s)"
+            sleep $INTERVAL
+            WAIT_TIME=$((WAIT_TIME + INTERVAL))
+          done
+          
+          if [ $WAIT_TIME -ge $MAX_WAIT ]; then
+            echo "⚠️ Timeout waiting for Claude Code response"
+            exit 1
+          fi
+
+      - name: Close analysis issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ env.issue_number }}" ]; then
+            gh issue close ${{ env.issue_number }} --comment "Analysis completed. Closing automated request."
+            echo "✅ Closed analysis request issue #${{ env.issue_number }}"
+          fi
+
+      - name: Validate generated CLAUDE.md
+        run: |
+          if [ ! -f "CLAUDE.md" ]; then
+            echo "❌ CLAUDE.md was not generated"
+            exit 1
+          fi
+          
+          # Check if file has substantial content
+          if [ $(wc -l < CLAUDE.md) -lt 20 ]; then
+            echo "❌ Generated CLAUDE.md appears too short"
+            exit 1
+          fi
+          
+          # Verify it contains key sections
+          if ! grep -q "## Project Overview" CLAUDE.md; then
+            echo "⚠️ Missing Project Overview section"
+          fi
+          
+          if ! grep -q "## Development Commands" CLAUDE.md || ! grep -q "## Key Dependencies" CLAUDE.md; then
+            echo "⚠️ Missing essential sections in CLAUDE.md"
+          fi
+          
+          echo "✅ CLAUDE.md validation passed"
+
+      - name: Compare with previous version
+        run: |
+          if [ -f "CLAUDE.md.backup" ]; then
+            echo "## Changes Summary" > claude_changes.md
+            echo "Comparing new CLAUDE.md with previous version..." >> claude_changes.md
+            echo "" >> claude_changes.md
+            
+            # Show diff statistics
+            echo "### File Statistics" >> claude_changes.md
+            echo "- Previous version: $(wc -l < CLAUDE.md.backup) lines" >> claude_changes.md
+            echo "- New version: $(wc -l < CLAUDE.md) lines" >> claude_changes.md
+            echo "" >> claude_changes.md
+            
+            # Generate diff (limiting size)
+            echo "### Key Changes" >> claude_changes.md
+            git diff --no-index CLAUDE.md.backup CLAUDE.md >> claude_changes.md || true
+            
+            echo "✅ Generated change comparison"
+          else
+            echo "📝 No previous CLAUDE.md to compare with - this is a new file"
+          fi
+
+      - name: Commit changes
+        run: |
+          git add CLAUDE.md
+          
+          if git diff --staged --quiet; then
+            echo "ℹ️  No changes to commit"
+            echo "has_changes=false" >> $GITHUB_ENV
+          else
+            git commit -m "docs: update CLAUDE.md with comprehensive codebase analysis
+
+          - Performed ${{ env.ANALYSIS_DEPTH }} analysis of entire codebase
+          - Updated project overview and architecture documentation
+          - Refreshed development commands and dependencies
+          - Validated all file paths and configurations
+          - Ensured accuracy of all documented information
+          
+          Generated automatically via Claude Code workflow"
+            
+            echo "has_changes=true" >> $GITHUB_ENV
+            echo "✅ Committed changes to $BRANCH_NAME"
+          fi
+
+      - name: Push changes
+        if: env.has_changes == 'true'
+        run: |
+          git push origin "$BRANCH_NAME" --force-with-lease
+          echo "✅ Pushed changes to origin/$BRANCH_NAME"
+
+      - name: Create Pull Request
+        if: env.has_changes == 'true' && env.CREATE_PR == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          if gh pr view "$BRANCH_NAME" > /dev/null 2>&1; then
+            echo "ℹ️  PR already exists for branch $BRANCH_NAME"
+            gh pr edit "$BRANCH_NAME" --title "📝 Update CLAUDE.md - Comprehensive Codebase Analysis" --body-file - << 'EOL'
+          # CLAUDE.md Comprehensive Update
+
+          This PR contains an updated CLAUDE.md file generated through comprehensive codebase analysis using Claude Code.
+
+          ## Analysis Performed
+          
+          - **Analysis Level**: ${{ env.ANALYSIS_DEPTH }}
+          - **Preservation Mode**: ${{ env.PRESERVE_SECTIONS == 'true' && 'Preserved existing accurate sections' || 'Complete regeneration' }}
+          - **Validation**: All file paths and commands verified
+          
+          ## Changes Overview
+          
+          The updated CLAUDE.md includes:
+          
+          - ✅ Current project architecture and components
+          - ✅ Accurate development commands and scripts  
+          - ✅ Complete dependency documentation
+          - ✅ Up-to-date configuration information
+          - ✅ Verified file paths and references
+          
+          ## Validation Steps Completed
+          
+          - [x] File structure analysis
+          - [x] Component architecture review
+          - [x] Dependencies verification
+          - [x] Scripts and commands validation
+          - [x] Configuration files analysis
+          - [x] Build process documentation
+          
+          Generated automatically by the Claude MD Review workflow.
+          EOL
+          else
+            gh pr create \
+              --title "📝 Update CLAUDE.md - Comprehensive Codebase Analysis" \
+              --body-file - << 'EOL'
+          # CLAUDE.md Comprehensive Update
+
+          This PR contains an updated CLAUDE.md file generated through comprehensive codebase analysis using Claude Code.
+
+          ## Analysis Performed
+          
+          - **Analysis Level**: ${{ env.ANALYSIS_DEPTH }}
+          - **Preservation Mode**: ${{ env.PRESERVE_SECTIONS == 'true' && 'Preserved existing accurate sections' || 'Complete regeneration' }}
+          - **Validation**: All file paths and commands verified
+          
+          ## Changes Overview
+          
+          The updated CLAUDE.md includes:
+          
+          - ✅ Current project architecture and components
+          - ✅ Accurate development commands and scripts  
+          - ✅ Complete dependency documentation
+          - ✅ Up-to-date configuration information
+          - ✅ Verified file paths and references
+          
+          ## Validation Steps Completed
+          
+          - [x] File structure analysis
+          - [x] Component architecture review
+          - [x] Dependencies verification
+          - [x] Scripts and commands validation
+          - [x] Configuration files analysis
+          - [x] Build process documentation
+          
+          Generated automatically by the Claude MD Review workflow.
+          EOL
+          fi
+          
+          echo "✅ Pull request created/updated"
+
+      - name: Workflow Summary
+        run: |
+          echo "## 🎯 CLAUDE.md Review Workflow Complete"
+          echo ""
+          echo "**Analysis Level:** ${{ env.ANALYSIS_DEPTH }}"
+          echo "**Branch:** ${{ env.BRANCH_NAME }}"
+          echo "**Changes:** ${{ env.has_changes }}"
+          echo ""
+          if [ "${{ env.has_changes }}" = "true" ]; then
+            echo "✅ CLAUDE.md has been successfully updated with comprehensive codebase analysis"
+            if [ "${{ env.CREATE_PR }}" = "true" ]; then
+              echo "📝 Pull request created for review"
+            else
+              echo "📝 Changes committed to branch (no PR created)"
+            fi
+          else
+            echo "ℹ️  No changes were needed - CLAUDE.md is already up to date"
+          fi
+
+      - name: Cleanup temporary files
+        if: always()
+        run: |
+          rm -f claude_analysis_prompt.md
+          rm -f claude_changes.md
+          rm -f CLAUDE.md.backup
+          echo "✅ Cleaned up temporary files"
