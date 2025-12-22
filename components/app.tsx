@@ -21,6 +21,10 @@ interface AppProps {
 export function App({ appConfig }: AppProps) {
   const room = useMemo(() => new Room(), []);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [startPayload, setStartPayload] = useState<{
+    ticket?: string;
+    displayName?: string;
+  } | null>(null);
   const { connectionDetails, refreshConnectionDetails } = useConnectionDetails();
 
   useEffect(() => {
@@ -45,6 +49,17 @@ export function App({ appConfig }: AppProps) {
   useEffect(() => {
     let aborted = false;
     if (sessionStarted && room.state === 'disconnected' && connectionDetails) {
+      if (process.env.NODE_ENV !== 'production') {
+        try {
+          const urlObj = new URL(connectionDetails.serverUrl);
+          // eslint-disable-next-line no-console
+          console.info('[connect] attempting', {
+            server: { protocol: urlObj.protocol, host: urlObj.host },
+            roomPresent: Boolean(connectionDetails.roomName),
+            participantNameLen: connectionDetails.participantName?.length ?? 0,
+          });
+        } catch {}
+      }
       Promise.all([
         room.localParticipant.setMicrophoneEnabled(true, undefined, {
           preConnectBuffer: appConfig.isPreConnectBufferEnabled,
@@ -68,6 +83,10 @@ export function App({ appConfig }: AppProps) {
     }
     return () => {
       aborted = true;
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.info('[connect] cleanup: disconnecting');
+      }
       room.disconnect();
     };
   }, [room, sessionStarted, connectionDetails, appConfig.isPreConnectBufferEnabled]);
@@ -79,7 +98,16 @@ export function App({ appConfig }: AppProps) {
       <MotionWelcome
         key="welcome"
         startButtonText={startButtonText}
-        onStartCall={() => setSessionStarted(true)}
+        onStartCall={(opts) => {
+          setStartPayload(opts ?? null);
+          setSessionStarted(true);
+          if (opts?.ticket) {
+            refreshConnectionDetails({
+              ticket: opts.ticket,
+              profile: opts.displayName ? { display_name: opts.displayName } : undefined,
+            });
+          }
+        }}
         disabled={sessionStarted}
         initial={{ opacity: 0 }}
         animate={{ opacity: sessionStarted ? 0 : 1 }}
