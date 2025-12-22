@@ -3,24 +3,28 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-export function useAutoScroll(scrollContentContainerRef: RefObject<Element | null>) {
+export function useAutoScroll(scrollContentContainerRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
     function scrollToBottom() {
-      const { scrollingElement } = document;
+      const contentEl = scrollContentContainerRef.current;
+      if (!contentEl) return;
 
-      if (scrollingElement) {
-        scrollingElement.scrollTop = scrollingElement.scrollHeight;
-      }
+      // 优先使用显式标记的滚动容器（例如对话主列），否则退回到自身
+      const scrollContainer =
+        (contentEl.closest('[data-scroll-container]') as HTMLElement | null) ?? contentEl;
+
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
 
-    if (scrollContentContainerRef.current) {
-      const resizeObserver = new ResizeObserver(scrollToBottom);
+    const el = scrollContentContainerRef.current;
+    if (!el) return;
 
-      resizeObserver.observe(scrollContentContainerRef.current);
-      scrollToBottom();
+    const resizeObserver = new ResizeObserver(scrollToBottom);
 
-      return () => resizeObserver.disconnect();
-    }
+    resizeObserver.observe(el);
+    scrollToBottom();
+
+    return () => resizeObserver.disconnect();
   }, [scrollContentContainerRef]);
 }
 interface ChatProps extends React.HTMLAttributes<HTMLDivElement> {

@@ -1,22 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import {
-  type AgentState,
-  type ReceivedChatMessage,
-  useRoomContext,
-  useVoiceAssistant,
-} from '@livekit/components-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { type AgentState, useRoomContext, useVoiceAssistant } from '@livekit/components-react';
 import { toastAlert } from '@/components/alert-toast';
-import { AgentControlBar } from '@/components/livekit/agent-control-bar/agent-control-bar';
-import { ChatEntry } from '@/components/livekit/chat/chat-entry';
-import { ChatMessageView } from '@/components/livekit/chat/chat-message-view';
-import { MediaTiles } from '@/components/livekit/media-tiles';
-import useChatAndTranscription from '@/hooks/useChatAndTranscription';
+import { CanvasPane } from '@/components/canvas-pane';
+import { CanvasOverlay } from '@/components/canvas-overlay';
+import { WorkspacePane } from '@/components/workspace-pane';
+import { WorkspaceOverlay } from '@/components/workspace-overlay';
+import { ConversationPane } from '@/components/conversation-pane';
+import { TimelinePane } from '@/components/timeline/TimelinePane';
+import { useConversationTimeline } from '@/hooks/useConversationTimeline';
+import useConversationMessagesV1 from '@/hooks/useConversationMessagesV1';
 import { useDebugMode } from '@/hooks/useDebug';
 import type { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { UIBlocksBootstrap } from '@/components/ui-blocks/Bootstrap';
 
 function isAgentAvailable(agentState: AgentState) {
   return agentState == 'listening' || agentState == 'thinking' || agentState == 'speaking';
@@ -26,18 +24,26 @@ interface SessionViewProps {
   appConfig: AppConfig;
   disabled: boolean;
   sessionStarted: boolean;
+  conversationId?: string | null;
 }
 
 export const SessionView = ({
   appConfig,
   disabled,
   sessionStarted,
+  conversationId,
   ref,
 }: React.ComponentProps<'div'> & SessionViewProps) => {
   const { state: agentState } = useVoiceAssistant();
   const [chatOpen, setChatOpen] = useState(false);
-  const { messages, send } = useChatAndTranscription();
+  const { messages, send } = useConversationMessagesV1(conversationId);
   const room = useRoomContext();
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<{ id: string; projectId?: string | null } | null>(null);
+  const [rightSplit, setRightSplit] = useState<number>(0.4); // percentage of viewport width allocated to right canvas (0..1)
+  const [dragging, setDragging] = useState(false);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
 
   useDebugMode();
 
@@ -79,96 +85,247 @@ export const SessionView = ({
     }
   }, [agentState, sessionStarted, room]);
 
-  const { supportsChatInput, supportsVideoInput, supportsScreenShare } = appConfig;
-  const capabilities = {
-    supportsChatInput,
-    supportsVideoInput,
-    supportsScreenShare,
+  // Load saved split from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = window.localStorage.getItem('canvasRightSplit');
+      if (saved != null) {
+        const n = parseFloat(saved);
+        if (!Number.isNaN(n) && n > 0.05 && n < 0.95) setRightSplit(n);
+      }
+    } catch {}
+  }, []);
+
+  // Keep a CSS variable in sync for use by global styles
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const body = document.body;
+    const paneOpen = canvasOpen || workspaceOpen;
+    if (paneOpen) {
+      const value = `${(rightSplit * 100).toFixed(2)}vw`;
+      body.style.setProperty('--canvas-right-width', value);
+      try {
+        window.localStorage.setItem('canvasRightSplit', String(rightSplit));
+      } catch {}
+    } else {
+      body.style.removeProperty('--canvas-right-width');
+    }
+    return () => {
+      body.style.removeProperty('--canvas-right-width');
+    };
+  }, [canvasOpen, workspaceOpen, rightSplit]);
+
+  // Handle drag to resize (desktop only)
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      const container = layoutRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const width = rect.width || 1;
+      const x = e.clientX - rect.left;
+      // right fraction based on mouse position within the layout container
+      let next = (width - x) / width;
+      // clamp right width between 20% and 80%
+      const min = 0.2;
+      const max = 0.8;
+      if (next < min) next = min;
+      if (next > max) next = max;
+      setRightSplit(next);
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mouseleave', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mouseleave', onUp);
+    };
+  }, [dragging]);
+
+  // Touch support (mostly for tablets; hidden on small screens anyway)
+  useEffect(() => {
+    if (!dragging) return;
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const container = layoutRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const width = rect.width || 1;
+      const x = t.clientX - rect.left;
+      let next = (width - x) / width;
+      const min = 0.2;
+      const max = 0.8;
+      if (next < min) next = min;
+      if (next > max) next = max;
+      setRightSplit(next);
+    };
+    const onTouchEnd = () => setDragging(false);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+    window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [dragging]);
+
+  // Surface selection: none | canvas | workspace
+  const surface: 'none' | 'canvas' | 'workspace' = canvasOpen ? 'canvas' : workspaceOpen ? 'workspace' : 'none';
+
+  const handleSelectSurface = (mode: 'none' | 'canvas' | 'workspace') => {
+    if (mode === 'none') {
+      setCanvasOpen(false);
+      setWorkspaceOpen(false);
+      setActiveArtifact(null);
+    } else if (mode === 'canvas') {
+      setCanvasOpen(true);
+      setWorkspaceOpen(false);
+    } else if (mode === 'workspace') {
+      setWorkspaceOpen(true);
+      setCanvasOpen(false);
+    }
   };
 
+  const { events, status, error } = useConversationTimeline(conversationId);
+  const timelineLoading = status === 'idle' || status === 'loading';
+
   return (
+    // 整个 SessionView 占满视口高度，页面本身不再滚动，只在内部滚动
     <main
       ref={ref}
       inert={disabled}
-      className={
-        // prevent page scrollbar
-        // when !chatOpen due to 'translate-y-20'
-        cn(!chatOpen && 'max-h-svh overflow-hidden')
-      }
+      className={cn('h-svh', !chatOpen && 'overflow-hidden')}
     >
-      <ChatMessageView
-        className={cn(
-          'mx-auto min-h-svh w-full max-w-2xl px-3 pt-32 pb-40 transition-[opacity,translate] duration-300 ease-out md:px-0 md:pt-36 md:pb-48',
-          chatOpen ? 'translate-y-0 opacity-100 delay-200' : 'translate-y-20 opacity-0'
-        )}
-      >
-        <div className="space-y-3 whitespace-pre-wrap">
-          <AnimatePresence>
-            {messages.map((message: ReceivedChatMessage) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 1, height: 'auto', translateY: 0.001 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              >
-                <ChatEntry hideName key={message.id} entry={message} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </ChatMessageView>
-
-      <div className="bg-background mp-12 fixed top-0 right-0 left-0 h-32 md:h-36">
-        {/* skrim */}
-        <div className="from-background absolute bottom-0 left-0 h-12 w-full translate-y-full bg-gradient-to-b to-transparent" />
-      </div>
-
-      <MediaTiles chatOpen={chatOpen} />
-
-      <div className="bg-background fixed right-0 bottom-0 left-0 z-50 px-3 pt-2 pb-3 md:px-12 md:pb-12">
-        <motion.div
-          key="control-bar"
-          initial={{ opacity: 0, translateY: '100%' }}
-          animate={{
-            opacity: sessionStarted ? 1 : 0,
-            translateY: sessionStarted ? '0%' : '100%',
-          }}
-          transition={{ duration: 0.3, delay: sessionStarted ? 0.5 : 0, ease: 'easeOut' }}
+      {/* 内部容器固定填满 main，高度不再额外增加 padding，避免把底部 chatbox 推出视口 */}
+      <div className="mx-auto h-full w-full">
+        <div
+          ref={layoutRef}
+          className="relative grid h-full"
+          style={
+            canvasOpen || workspaceOpen
+              ? {
+                  gridTemplateColumns: `${((1 - rightSplit) * 100).toFixed(
+                    2
+                  )}% auto ${(rightSplit * 100).toFixed(2)}%`,
+                }
+              : { gridTemplateColumns: '1fr' }
+          }
         >
-          <div className="relative z-10 mx-auto w-full max-w-2xl">
-            {appConfig.isPreConnectBufferEnabled && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{
-                  opacity: sessionStarted && messages.length === 0 ? 1 : 0,
-                  transition: {
-                    ease: 'easeIn',
-                    delay: messages.length > 0 ? 0 : 0.8,
-                    duration: messages.length > 0 ? 0.2 : 0.5,
-                  },
-                }}
-                aria-hidden={messages.length > 0}
-                className={cn(
-                  'absolute inset-x-0 -top-12 text-center',
-                  sessionStarted && messages.length === 0 && 'pointer-events-none'
-                )}
-              >
-                <p className="animate-text-shimmer inline-block !bg-clip-text text-sm font-semibold text-transparent">
-                  Agent is listening, ask it a question
-                </p>
-              </motion.div>
-            )}
-
-            <AgentControlBar
-              capabilities={capabilities}
-              onChatOpenChange={setChatOpen}
+          {/* Ensure UI Blocks TextStream/Chat handlers are registered early */}
+          <UIBlocksBootstrap />
+          {/* 左列：完整 SessionView 会话体验 */}
+          <div className="relative">
+            <ConversationPane
+              appConfig={appConfig}
+              sessionStarted={sessionStarted}
+              messages={messages}
+              chatOpen={chatOpen}
+              setChatOpen={setChatOpen}
               onSendMessage={handleSendMessage}
+              onToggleCanvas={() => {
+                setCanvasOpen((v) => {
+                  const next = !v;
+                  if (next) setWorkspaceOpen(false);
+                  return next;
+                });
+              }}
+              canvasOpen={canvasOpen || workspaceOpen}
+              onSelectSurface={handleSelectSurface}
+              surface={surface}
+              onOpenArtifact={(artifactId, projectId) => {
+                setActiveArtifact({ id: artifactId, projectId: projectId ?? null });
+                setWorkspaceOpen(true);
+                setCanvasOpen(false);
+              }}
+              anchor="container"
             />
           </div>
-          {/* skrim */}
-          <div className="from-background border-background absolute top-0 left-0 h-12 w-full -translate-y-full bg-gradient-to-t to-transparent" />
-        </motion.div>
+
+          {/* 中间分隔线：仅桌面端，pane 打开时 */}
+          {(canvasOpen || workspaceOpen) && (
+            <div className="hidden md:block">
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize canvas"
+                className="group relative mx-[-4px] h-full w-2 cursor-col-resize"
+                onMouseDown={() => setDragging(true)}
+                onTouchStart={() => setDragging(true)}
+              >
+                {/* Hit area */}
+                <div className="absolute inset-y-0 -left-2 right-2" />
+                {/* Visual guide line */}
+                <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border" />
+                {/* Hover hint */}
+                <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground/60 opacity-0 shadow group-hover:opacity-100">
+                  drag
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 右列：Workspace / Canvas + Timeline（桌面端） */}
+          {(canvasOpen || workspaceOpen) && (
+            // 右侧 workspace / canvas 区在桌面端需要避开顶部固定 header，因此加上 md:pt-20
+            // 同时通过 min-h-0 确保内部容器可以正确收缩并启用滚动
+            <div className="hidden md:flex md:min-h-0 md:flex-col md:pt-20 md:pr-3 md:pl-3">
+              <div className={cn('flex-1 min-h-0 border-b', workspaceOpen && !canvasOpen && 'overflow-y-auto')}>
+                {canvasOpen && !workspaceOpen && <CanvasPane className="h-full" />}
+                {workspaceOpen && !canvasOpen && (
+                  <WorkspacePane
+                    className="h-full"
+                    activeArtifact={activeArtifact}
+                    onClose={() => {
+                      setWorkspaceOpen(false);
+                      setActiveArtifact(null);
+                    }}
+                  />
+                )}
+              </div>
+              <div className="h-64 min-h-[12rem] overflow-y-auto">
+                <TimelinePane
+                  events={events}
+                  loading={timelineLoading}
+                  error={error ?? undefined}
+                  onSelectArtifact={(artifactId) => {
+                    setActiveArtifact({ id: artifactId, projectId: null });
+                    setWorkspaceOpen(true);
+                    setCanvasOpen(false);
+                  }}
+                  onSelectStep={(_stepId) => {
+                    // TODO: 打通到任务/步骤视图，高亮或滚动到对应 step
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Mobile overlay: canvas (sm screens) */}
+          {canvasOpen && (
+            <CanvasOverlay
+              open={canvasOpen}
+              onClose={() => setCanvasOpen(false)}
+              className="md:hidden"
+            />
+          )}
+
+          {/* Mobile overlay: workspace (sm screens) */}
+          {workspaceOpen && (
+            <WorkspaceOverlay
+              open={workspaceOpen}
+              onClose={() => {
+                setWorkspaceOpen(false);
+                setActiveArtifact(null);
+              }}
+              title="Workspace"
+              activeArtifact={activeArtifact}
+              className="md:hidden"
+            />
+          )}
+        </div>
       </div>
     </main>
   );

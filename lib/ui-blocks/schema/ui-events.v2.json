@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lk:ui-events.v2",
+  "title": "UI Events v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "args"],
+  "properties": {
+    "name": { "type": "string" },
+    "args": { "type": "object" }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "name": { "const": "tool.invoke" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callId", "requestId", "messageId", "origin", "tool", "arguments"],
+          "properties": {
+            "callId": { "type": "string", "minLength": 1 },
+            "requestId": { "type": "string", "minLength": 1 },
+            "messageId": { "type": "string", "minLength": 1 },
+            "origin": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["blockId", "type"],
+              "properties": {
+                "blockId": { "type": "string", "minLength": 1 },
+                "actionId": { "type": "string" },
+                "type": { "type": "string", "enum": ["actions", "button", "form"] }
+              }
+            },
+            "tool": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "argumentsSchemaRef": { "type": "string" },
+                "resultSchemaRef": { "type": "string" }
+              }
+            },
+            "arguments": { "type": "object" }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "name": { "const": "tool.cancel" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callId"],
+          "properties": {
+            "callId": { "type": "string", "minLength": 1 },
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "name": { "const": "tool.result" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callId", "final"],
+          "properties": {
+            "callId": { "type": "string", "minLength": 1 },
+            "final": { "type": "boolean" },
+            "progress": { "type": "number", "minimum": 0, "maximum": 1 },
+            "content": { "type": "object" },
+            "output": { "type": "object" },
+            "outputSchemaRef": { "type": "string" },
+            "ui": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["blocks"],
+              "properties": {
+                "text": { "type": "string" },
+                "lang": { "type": "string" },
+                "blocks": { "type": "array", "items": { "$ref": "urn:lk:ui-blocks.v2#/$defs/Block" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "name": { "const": "tool.error" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["callId", "code", "message"],
+          "properties": {
+            "callId": { "type": "string", "minLength": 1 },
+            "code": {
+              "type": "string",
+              "enum": [
+                "INVALID_ARGS",
+                "UNAUTHORIZED",
+                "FORBIDDEN",
+                "NOT_FOUND",
+                "CONFLICT",
+                "PRECONDITION_FAILED",
+                "RATE_LIMITED",
+                "BACKEND_UNAVAILABLE",
+                "TIMEOUT",
+                "CANCELLED",
+                "INTERNAL"
+              ]
+            },
+            "message": { "type": "string", "minLength": 1 },
+            "retriable": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "name": { "const": "ui.rendered" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requestId", "messageId"],
+          "properties": {
+            "requestId": { "type": "string", "minLength": 1 },
+            "messageId": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "name": { "const": "ui.error" },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requestId", "messageId", "code", "message"],
+          "properties": {
+            "requestId": { "type": "string", "minLength": 1 },
+            "messageId": { "type": "string", "minLength": 1 },
+            "code": { "type": "string", "minLength": 1 },
+            "message": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  ]
+}
+

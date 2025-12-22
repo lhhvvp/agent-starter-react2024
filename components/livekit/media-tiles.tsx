@@ -88,9 +88,11 @@ export function useLocalTrackRef(source: Track.Source) {
 
 interface MediaTilesProps {
   chatOpen: boolean;
+  anchor?: 'viewport' | 'container';
+  canvasOpen?: boolean;
 }
 
-export function MediaTiles({ chatOpen }: MediaTilesProps) {
+export function MediaTiles({ chatOpen, anchor = 'viewport', canvasOpen }: MediaTilesProps) {
   const {
     state: agentState,
     audioTrack: agentAudioTrack,
@@ -121,8 +123,15 @@ export function MediaTiles({ chatOpen }: MediaTilesProps) {
 
   const isAvatar = agentVideoTrack !== undefined;
 
+  // When canvas is open on desktop, restrict overlay to the resizable left column
+  const rightInsetClass = canvasOpen ? 'right-canvas-offset' : 'right-0';
+  const basePos = 'left-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40 transition-all duration-300 ease-out';
+  const positionClass = anchor === 'viewport'
+    ? cn('fixed', basePos, rightInsetClass)
+    : cn('absolute', basePos, rightInsetClass);
+
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40">
+    <div className={cn('pointer-events-none', positionClass)}>
       <div className="relative mx-auto h-full max-w-2xl px-4 md:px-0">
         <div className={cn(classNames.grid)}>
           {/* agent */}

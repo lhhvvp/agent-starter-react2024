@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Toggle } from '@/components/ui/toggle';
 
 interface ChatInputProps extends React.HTMLAttributes<HTMLFormElement> {
   onSend?: (message: string) => void;
   disabled?: boolean;
+  onToggleCanvas?: () => void; // optional toolbar action to open/close canvas overlay
+  canvasOpen?: boolean;
 }
 
-export function ChatInput({ onSend, className, disabled, ...props }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  className,
+  disabled,
+  onToggleCanvas,
+  canvasOpen,
+  ...props
+}: ChatInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string>('');
 
@@ -26,12 +36,37 @@ export function ChatInput({ onSend, className, disabled, ...props }: ChatInputPr
     inputRef.current?.focus();
   }, [disabled]);
 
+  // keyboard shortcut: Alt + C toggles canvas (when available)
+  useEffect(() => {
+    if (!onToggleCanvas || disabled) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key.toLowerCase() === 'c' || e.code === 'KeyC')) {
+        e.preventDefault();
+        onToggleCanvas();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onToggleCanvas, disabled]);
+
   return (
     <form
       {...props}
       onSubmit={handleSubmit}
       className={cn('flex items-center gap-2 rounded-md pl-1 text-sm', className)}
     >
+      {onToggleCanvas && (
+        <Toggle
+          pressed={!!canvasOpen}
+          onPressedChange={() => onToggleCanvas?.()}
+          disabled={disabled}
+          aria-label="Toggle Canvas"
+          className="font-mono"
+        >
+          CANVAS
+        </Toggle>
+      )}
+
       <input
         autoFocus
         ref={inputRef}

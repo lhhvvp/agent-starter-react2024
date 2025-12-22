@@ -1,22 +1,45 @@
+'use client';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+type WelcomeMode = 'ticket' | 'me';
 
 interface WelcomeProps {
   disabled: boolean;
   startButtonText: string;
-  onStartCall: () => void;
+  mode?: WelcomeMode;
+  onStartCall?: (opts?: { ticket?: string; displayName?: string }) => void;
 }
 
 export const Welcome = ({
   disabled,
   startButtonText,
+  mode = 'ticket',
   onStartCall,
   ref,
 }: React.ComponentProps<'div'> & WelcomeProps) => {
+  const [useTicket, setUseTicket] = useState(false);
+  const [ticket, setTicket] = useState('');
+  const [displayName, setDisplayName] = useState('');
+
+  const handleStart = () => {
+    if (mode === 'ticket' && useTicket && ticket.trim()) {
+      onStartCall?.({ ticket: ticket.trim(), displayName: displayName.trim() || undefined });
+    } else {
+      onStartCall?.();
+    }
+  };
   return (
     <div
       ref={ref}
       inert={disabled}
-      className="fixed inset-0 z-10 mx-auto flex h-svh flex-col items-center justify-center text-center"
+      className={cn(
+        mode === 'ticket'
+          ? 'fixed inset-0 z-10 mx-auto flex h-svh flex-col items-center justify-center text-center'
+          : 'mx-auto flex h-full flex-col items-center justify-center px-4 pt-24 text-center md:pt-32'
+      )}
     >
       <svg
         width="64"
@@ -35,7 +58,42 @@ export const Welcome = ({
       <p className="text-fg1 max-w-prose pt-1 leading-6 font-medium">
         Chat live with your voice AI agent
       </p>
-      <Button variant="primary" size="lg" onClick={onStartCall} className="mt-6 w-64 font-mono">
+      {/* Optional ticket entry（仅在 ticket 模式下展示） */}
+      {mode === 'ticket' && (
+        <div className="mt-4 w-full max-w-sm text-left">
+          <button
+            type="button"
+            className="text-sm underline"
+            onClick={() => setUseTicket((v) => !v)}
+          >
+            我有票据（可选）
+          </button>
+          {useTicket && (
+            <div className="mt-3 space-y-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Ticket</label>
+                <input
+                  className="w-full rounded border bg-background px-3 py-2 text-sm outline-none"
+                  placeholder="tkt_..."
+                  value={ticket}
+                  onChange={(e) => setTicket(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">Display name（可选）</label>
+                <input
+                  className="w-full rounded border bg-background px-3 py-2 text-sm outline-none"
+                  placeholder="Your name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Button variant="primary" size="lg" onClick={handleStart} className="mt-6 w-64 font-mono">
         {startButtonText}
       </Button>
       <p className="text-fg1 m fixed bottom-5 left-1/2 w-full max-w-prose -translate-x-1/2 pt-1 text-xs leading-5 font-normal text-pretty md:text-sm">
