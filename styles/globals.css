@@ -117,6 +117,11 @@
   * {
     @apply border-foreground/20 outline-ring/50;
   }
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }

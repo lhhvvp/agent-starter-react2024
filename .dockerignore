@@ -1,0 +1,28 @@
+# dependencies
+node_modules
+.pnpm-store
+pnpm-store
+
+# build output
+.next
+out
+dist
+
+# env
+.env
+.env.*
+
+# vcs
+.git
+.gitignore
+
+# misc
+Dockerfile*
+docker-compose*
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.DS_Store
+coverage
+.turbo

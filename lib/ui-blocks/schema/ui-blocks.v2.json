@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lk:ui-blocks.v2",
+  "title": "UI Blocks v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "requestId", "messageId", "blocks"],
+  "properties": {
+    "schema": { "type": "string", "const": "ui-blocks@2" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "messageId": { "type": "string", "minLength": 1 },
+    "lang": { "type": "string" },
+    "text": { "type": "string" },
+    "blocks": { "type": "array", "items": { "$ref": "#/$defs/Block" } }
+  },
+  "$defs": {
+    "Id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$" },
+    "BlockState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "loading": { "type": "boolean" },
+        "disabled": { "type": "boolean" },
+        "reason": { "type": "string" }
+      }
+    },
+    "ToolAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "name"],
+      "properties": {
+        "type": { "type": "string", "const": "tool" },
+        "name": { "type": "string", "minLength": 1 },
+        "arguments": { "type": "object" },
+        "argumentsSchema": { "type": "object" },
+        "argumentsSchemaRef": { "type": "string", "minLength": 1 },
+        "resultSchema": { "type": "object" },
+        "resultSchemaRef": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ActionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "action"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "label": { "type": "string" },
+        "style": { "type": "string", "enum": ["primary", "secondary", "danger"] },
+        "action": { "$ref": "#/$defs/ToolAction" }
+      }
+    },
+    "BaseBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "type": { "type": "string" },
+        "state": { "$ref": "#/$defs/BlockState" }
+      }
+    },
+    "TextBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "content"],
+          "properties": {
+            "type": { "const": "text" },
+            "content": { "type": "string" },
+            "variant": { "type": "string", "enum": ["muted", "body", "title", "subtitle"] },
+            "format": { "type": "string", "enum": ["plain", "md"] }
+          }
+        }
+      ]
+    },
+    "KVItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "value"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "key": { "type": "string" },
+        "value": { "type": "string" },
+        "copyable": { "type": "boolean" }
+      }
+    },
+    "KVBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "items"],
+          "properties": {
+            "type": { "const": "kv" },
+            "items": { "type": "array", "items": { "$ref": "#/$defs/KVItem" } }
+          }
+        }
+      ]
+    },
+    "TableColumn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "label": { "type": "string" },
+        "align": { "type": "string", "enum": ["left", "center", "right"] },
+        "width": { "type": "number" }
+      }
+    },
+    "TableRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "cells"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "cells": { "type": "object" }
+      }
+    },
+    "TableBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "columns", "rows"],
+          "properties": {
+            "type": { "const": "table" },
+            "columns": { "type": "array", "items": { "$ref": "#/$defs/TableColumn" }, "minItems": 1 },
+            "rows": { "type": "array", "items": { "$ref": "#/$defs/TableRow" } }
+          }
+        }
+      ]
+    },
+    "CardBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "body"],
+          "properties": {
+            "type": { "const": "card" },
+            "title": { "type": "string" },
+            "subtitle": { "type": "string" },
+            "body": { "type": "array", "items": { "$ref": "#/$defs/Block" } }
+          }
+        }
+      ]
+    },
+    "ActionsBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "items"],
+          "properties": {
+            "type": { "const": "actions" },
+            "items": { "type": "array", "items": { "$ref": "#/$defs/ActionItem" }, "minItems": 1 }
+          }
+        }
+      ]
+    },
+    "FormField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "input", "required"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "label": { "type": "string" },
+        "input": { "type": "string", "enum": ["text", "number", "textarea", "select", "tel", "email", "password", "date"] },
+        "required": { "type": "boolean" },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "$ref": "#/$defs/Id" },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "placeholder": { "type": "string" },
+        "defaultValue": {},
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "step": { "type": "number" },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "pattern": { "type": "string" },
+        "hint": { "type": "string" },
+        "errorMessage": { "type": "string" },
+        "sensitive": { "type": "boolean" },
+        "redact": { "type": "boolean" },
+        "maskOnClient": { "type": "boolean" },
+        "readonly": { "type": "boolean" },
+        "disabled": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "input": { "const": "number" } }, "required": ["input"] },
+          "then": {
+            "properties": {
+              "defaultValue": { "type": "number" },
+              "min": { "type": "number" },
+              "max": { "type": "number" },
+              "step": { "type": "number" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "input": { "const": "date" } }, "required": ["input"] },
+          "then": {
+            "properties": {
+              "defaultValue": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "input": { "const": "email" } }, "required": ["input"] },
+          "then": { "properties": { "pattern": { "type": "string" } } }
+        },
+        {
+          "if": { "properties": { "input": { "const": "tel" } }, "required": ["input"] },
+          "then": { "properties": { "pattern": { "type": "string" } } }
+        }
+      ]
+    },
+    "FormBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "fields", "submit"],
+          "properties": {
+            "type": { "const": "form" },
+            "title": { "type": "string" },
+            "fields": { "type": "array", "items": { "$ref": "#/$defs/FormField" }, "minItems": 1 },
+            "submit": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["action"],
+              "properties": {
+                "label": { "type": "string" },
+                "action": { "$ref": "#/$defs/ToolAction" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ButtonBlock": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseBlock" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text", "action"],
+          "properties": {
+            "type": { "const": "button" },
+            "text": { "type": "string" },
+            "action": { "$ref": "#/$defs/ToolAction" }
+          }
+        }
+      ]
+    },
+    "Block": {
+      "oneOf": [
+        { "$ref": "#/$defs/TextBlock" },
+        { "$ref": "#/$defs/KVBlock" },
+        { "$ref": "#/$defs/TableBlock" },
+        { "$ref": "#/$defs/CardBlock" },
+        { "$ref": "#/$defs/ActionsBlock" },
+        { "$ref": "#/$defs/FormBlock" },
+        { "$ref": "#/$defs/ButtonBlock" }
+      ]
+    }
+  }
+}
+

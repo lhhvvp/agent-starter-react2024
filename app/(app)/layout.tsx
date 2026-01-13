@@ -1,5 +1,6 @@
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { getAppConfig } from '@/lib/utils';
+import { LogoutButton } from '@/components/auth/logout-button';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,9 +10,32 @@ export default async function Layout({ children }: LayoutProps) {
   const hdrs = await headers();
   const { companyName, logo, logoDark } = await getAppConfig(hdrs);
 
+  // Fetch session on the server; ignore errors
+  let sessionUser: { display_name?: string | null; email?: string | null } | null = null;
+  try {
+    const cookieHeader = (await cookies())
+      .getAll()
+      .map((c) => `${c.name}=${c.value}`)
+      .join('; ');
+    const proto = hdrs.get('x-forwarded-proto') ?? 'http';
+    const host = hdrs.get('host') ?? 'localhost:3000';
+    const base = `${proto}://${host}`;
+    const res = await fetch(`${base}/api/auth/session`, {
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      sessionUser = {
+        display_name: data?.user?.display_name ?? null,
+        email: data?.user?.email ?? null,
+      };
+    }
+  } catch {}
+
   return (
     <>
-      <header className="fixed top-0 left-0 z-50 hidden w-full flex-row justify-between p-6 md:flex">
+      <header className="lka-header fixed top-0 left-0 z-50 hidden w-full items-center justify-between p-6 md:flex">
         <a
           target="_blank"
           rel="noopener noreferrer"
@@ -27,17 +51,36 @@ export default async function Layout({ children }: LayoutProps) {
             className="hidden size-6 dark:block"
           />
         </a>
-        <span className="text-foreground font-mono text-xs font-bold tracking-wider uppercase">
-          Built with{' '}
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://docs.livekit.io/agents"
-            className="underline underline-offset-4"
-          >
-            LiveKit Agents
-          </a>
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="text-foreground font-mono text-xs font-bold tracking-wider uppercase">
+            Built with{' '}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href="https://docs.livekit.io/agents"
+              className="underline underline-offset-4"
+            >
+              LiveKit Agents
+            </a>
+          </span>
+          <div className="h-4 w-px bg-border" />
+          {sessionUser ? (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-muted-foreground">
+                {sessionUser.display_name || sessionUser.email || '已登录'}
+              </span>
+              <LogoutButton />
+            </div>
+          ) : (
+            <a
+              href="/login"
+              className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm"
+              title="登录"
+            >
+              登录
+            </a>
+          )}
+        </div>
       </header>
 
       {children}

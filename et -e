@@ -1,0 +1,3 @@
+* [32mgithub-action-test[m 29c268c [[34morigin/github-action-test[m] chore: remove proxy environment variables from Dockerfile
+  main              [m b7d9783 [[34morigin/main[m] Merge pull request #1 from lhhvvp/mytest
+  mytest            [m bb68808 [[34morigin/mytest[m] docs: update CLAUDE.md for improved clarity and formatting; adjust timeout_minutes in workflow configuration
