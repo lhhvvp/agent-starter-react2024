@@ -1,5 +1,7 @@
 import type { AppConfig } from './lib/types';
 
+export type { AppConfig } from './lib/types';
+
 export const APP_CONFIG_DEFAULTS: AppConfig = {
   companyName: '榆林市医疗保障局',
   pageTitle: '榆林医保智能客服',

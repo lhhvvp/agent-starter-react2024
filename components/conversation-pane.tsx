@@ -8,9 +8,9 @@ import { ChatEntry } from '@/components/livekit/chat/chat-entry';
 import { ChatMessageView } from '@/components/livekit/chat/chat-message-view';
 import { MediaTiles } from '@/components/livekit/media-tiles';
 import { useAgentCapabilities } from '@/hooks/useAgentCapabilities';
+import type { ReactionValue, UiBlockV1, UiMessageV1 } from '@/hooks/useConversationMessagesV1';
 import type { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import type { ReactionValue, UiBlockV1, UiMessageV1 } from '@/hooks/useConversationMessagesV1';
 
 interface ConversationPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   appConfig: AppConfig;
@@ -93,14 +93,14 @@ function SimpleArtifactChip({
     <button
       type="button"
       onClick={handleClick}
-      className="bg-muted/40 hover:bg-muted/70 mt-2 flex w-full max-w-md items-start gap-2 rounded-xl border border-border/60 px-3 py-2 text-left text-xs shadow-sm transition-colors"
+      className="bg-muted/40 hover:bg-muted/70 border-border/60 mt-2 flex w-full max-w-md items-start gap-2 rounded-xl border px-3 py-2 text-left text-xs shadow-sm transition-colors"
     >
-      <div className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+      <div className="bg-primary/10 text-primary mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full text-[11px] font-semibold">
         文
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-foreground truncate">{block.title}</span>
+          <span className="text-foreground truncate font-medium">{block.title}</span>
         </div>
         {block.snippet && (
           <p className="text-muted-foreground mt-1 line-clamp-2 text-[11px] leading-snug">
@@ -126,7 +126,7 @@ export function ConversationPane({
   anchor = 'viewport',
   onSelectSurface,
   surface,
-   onOpenArtifact,
+  onOpenArtifact,
   className,
   ...props
 }: ConversationPaneProps) {
@@ -194,7 +194,7 @@ export function ConversationPane({
       {/* Bottom control bar */}
       <div
         className={cn(
-          'bg-background sticky bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-3 md:px-12 md:pb-12'
+          'bg-background sticky right-0 bottom-0 left-0 z-50 px-3 pt-2 pb-3 md:px-12 md:pb-12'
         )}
       >
         <motion.div

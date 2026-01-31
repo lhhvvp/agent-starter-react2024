@@ -1,41 +1,41 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Room, RoomEvent } from 'livekit-client';
 import { motion } from 'motion/react';
+import { RoomContext } from '@livekit/components-react';
 import {
-  ChatsCircle,
-  ClockCounterClockwise,
-  SquaresFour,
   CaretDoubleLeft,
   CaretDoubleRight,
-  PlusCircle,
   CaretDown,
-  List,
-  ShareNetwork,
+  ChatsCircle,
+  Check,
+  ClockCounterClockwise,
   DownloadSimple,
   GearSix,
-  UserCircle,
-  Check,
+  List,
   Plus,
-  UsersThree,
-  SlidersHorizontal,
+  PlusCircle,
   Question,
+  ShareNetwork,
   SignOut,
+  SlidersHorizontal,
+  SquaresFour,
+  UserCircle,
+  UsersThree,
   X,
 } from '@phosphor-icons/react/dist/ssr';
-import { RoomContext } from '@livekit/components-react';
-import { toastAlert } from '@/components/alert-toast';
 import { LogoutButton } from '@/components/auth/logout-button';
 import { ClientLogProvider } from '@/components/client-log/ClientLogProvider';
+import { toastAlert } from '@/components/livekit/alert-toast';
+import { Toaster } from '@/components/livekit/toaster';
 import { SessionView } from '@/components/session-view';
-import { Toaster } from '@/components/ui/sonner';
-import { Welcome } from '@/components/welcome';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Welcome } from '@/components/welcome';
 import useConnectionDetails from '@/hooks/useConnectionDetails';
-import { useMeProjects, type MeProjectSummary } from '@/hooks/useMeProjects';
 import useConversationMessagesV1, { type UiMessageV1 } from '@/hooks/useConversationMessagesV1';
+import { type MeProjectSummary, useMeProjects } from '@/hooks/useMeProjects';
 import type { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -517,7 +517,10 @@ function AppShell({
       await navigator.clipboard.writeText(url);
       toastAlert({ title: '已复制分享链接', description: url });
     } catch {
-      toastAlert({ title: '复制失败', description: '浏览器未授予剪贴板权限，请手动复制地址栏链接。' });
+      toastAlert({
+        title: '复制失败',
+        description: '浏览器未授予剪贴板权限，请手动复制地址栏链接。',
+      });
     }
   }
 
@@ -570,451 +573,480 @@ function AppShell({
       {showSidebar && (
         <aside
           className={cn(
-            'hidden h-full flex-col border-r border-border bg-sidebar/80 pb-4 pt-4 md:flex transition-[width] duration-300',
+            'border-border bg-sidebar/80 hidden h-full flex-col border-r pt-4 pb-4 transition-[width] duration-300 md:flex',
             sidebarCollapsed ? 'w-16 px-2' : 'w-60 px-4'
           )}
         >
-          {/* Close sidebar (ChatGPT-like) */}
-          <button
-            type="button"
-            onClick={() => setSidebarCollapsed((v) => !v)}
-            className={cn(
-              'mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted',
-              sidebarCollapsed ? 'mx-auto' : 'ml-1'
-            )}
-            title={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
-            aria-label={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-          >
-            {sidebarCollapsed ? (
-              <CaretDoubleRight className="h-4 w-4" />
-            ) : (
-              <CaretDoubleLeft className="h-4 w-4" />
-            )}
-          </button>
-
-          {/* Brand (ChatGPT-like) */}
-          <a
-            href="/"
-            className={cn(
-              'mb-4 flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted',
-              sidebarCollapsed ? 'justify-center' : 'justify-start'
-            )}
-          >
-            <img
-              src="/yulin-mhsa-mark.svg"
-              alt={appConfig.pageTitle}
-              className="block h-7 w-auto dark:hidden"
-            />
-            <img
-              src="/yulin-mhsa-mark-dark.svg"
-              alt={appConfig.pageTitle}
-              className="hidden h-7 w-auto dark:block"
-            />
-            {!sidebarCollapsed && (
-              <span className="truncate text-sm font-semibold">{appConfig.pageTitle}</span>
-            )}
-          </a>
-
-            <nav className="flex-1 space-y-1 text-sm">
+          {sidebarCollapsed ? (
+            <>
+              {/* Open sidebar (ChatGPT-like) */}
               <button
                 type="button"
-                className={cn(
-                  'flex w-full items-center rounded-md px-3 py-2 hover:bg-muted',
-                  sidebarCollapsed ? 'text-foreground' : 'gap-2 text-left font-medium text-foreground'
-                )}
+                onClick={() => setSidebarCollapsed(false)}
+                className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                title="Open sidebar"
+                aria-label="展开侧边栏"
               >
-                <ChatsCircle className="h-4 w-4" weight="fill" />
-                {sidebarLabelsVisible && <span>会话</span>}
+                <CaretDoubleRight className="h-4 w-4" />
               </button>
-              {isMeMode && (
-                <button
-                  type="button"
-                  onClick={onCreateConversation}
-                  disabled={creatingConversation}
-                  className={cn(
-                    'flex w-full items-center rounded-md px-3 py-2 hover:bg-muted',
-                    sidebarCollapsed
-                      ? 'text-muted-foreground'
-                      : 'gap-2 text-left text-muted-foreground'
-                  )}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  {sidebarLabelsVisible && (
-                    <span>{creatingConversation ? '创建中…' : '新建会话'}</span>
-                  )}
-                </button>
+
+              {/* Brand (ChatGPT-like) */}
+              <a
+                href="/"
+                className="hover:bg-muted mb-4 flex items-center justify-center gap-2 rounded-lg px-2 py-2"
+              >
+                <img
+                  src="/yulin-mhsa-mark.svg"
+                  alt={appConfig.pageTitle}
+                  className="block h-7 w-auto dark:hidden"
+                />
+                <img
+                  src="/yulin-mhsa-mark-dark.svg"
+                  alt={appConfig.pageTitle}
+                  className="hidden h-7 w-auto dark:block"
+                />
+              </a>
+            </>
+          ) : (
+            <div className="mb-4 flex items-center gap-2">
+              {/* Brand (ChatGPT-like) */}
+              <a
+                href="/"
+                className="hover:bg-muted flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2"
+              >
+                <img
+                  src="/yulin-mhsa-mark.svg"
+                  alt={appConfig.pageTitle}
+                  className="block h-7 w-auto dark:hidden"
+                />
+                <img
+                  src="/yulin-mhsa-mark-dark.svg"
+                  alt={appConfig.pageTitle}
+                  className="hidden h-7 w-auto dark:block"
+                />
+                <span className="truncate text-sm font-semibold">{appConfig.pageTitle}</span>
+              </a>
+
+              {/* Close sidebar (ChatGPT-like) */}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(true)}
+                className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                title="Close sidebar"
+                aria-label="折叠侧边栏"
+              >
+                <CaretDoubleLeft className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          <nav className="flex-1 space-y-1 text-sm">
+            <button
+              type="button"
+              className={cn(
+                'hover:bg-muted flex w-full items-center rounded-md px-3 py-2',
+                sidebarCollapsed ? 'text-foreground' : 'text-foreground gap-2 text-left font-medium'
               )}
+            >
+              <ChatsCircle className="h-4 w-4" weight="fill" />
+              {sidebarLabelsVisible && <span>会话</span>}
+            </button>
+            {isMeMode && (
               <button
                 type="button"
+                onClick={onCreateConversation}
+                disabled={creatingConversation}
                 className={cn(
-                  'flex w-full items-center rounded-md px-3 py-2 hover:bg-muted hover:text-foreground',
-                  sidebarCollapsed ? 'text-muted-foreground' : 'gap-2 text-left text-muted-foreground'
+                  'hover:bg-muted flex w-full items-center rounded-md px-3 py-2',
+                  sidebarCollapsed
+                    ? 'text-muted-foreground'
+                    : 'text-muted-foreground gap-2 text-left'
                 )}
               >
-                <ClockCounterClockwise className="h-4 w-4" />
-                {sidebarLabelsVisible && <span>时间线</span>}
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  'flex w-full items-center rounded-md px-3 py-2 hover:bg-muted hover:text-foreground',
-                  sidebarCollapsed ? 'text-muted-foreground' : 'gap-2 text-left text-muted-foreground'
+                <PlusCircle className="h-4 w-4" />
+                {sidebarLabelsVisible && (
+                  <span>{creatingConversation ? '创建中…' : '新建会话'}</span>
                 )}
-              >
-                <SquaresFour className="h-4 w-4" />
-                {sidebarLabelsVisible && <span>工作区</span>}
               </button>
-            </nav>
+            )}
+            <button
+              type="button"
+              className={cn(
+                'hover:bg-muted hover:text-foreground flex w-full items-center rounded-md px-3 py-2',
+                sidebarCollapsed ? 'text-muted-foreground' : 'text-muted-foreground gap-2 text-left'
+              )}
+            >
+              <ClockCounterClockwise className="h-4 w-4" />
+              {sidebarLabelsVisible && <span>时间线</span>}
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'hover:bg-muted hover:text-foreground flex w-full items-center rounded-md px-3 py-2',
+                sidebarCollapsed ? 'text-muted-foreground' : 'text-muted-foreground gap-2 text-left'
+              )}
+            >
+              <SquaresFour className="h-4 w-4" />
+              {sidebarLabelsVisible && <span>工作区</span>}
+            </button>
+          </nav>
 
-            {/* Account menu (ChatGPT-like bottom-left) */}
-            <div className="mt-4 border-t border-border/60 pt-3">
-              <div ref={accountMenuContainerRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSettingsOpen(false);
-                    if (sidebarCollapsed) {
-                      setSidebarCollapsed(false);
-                      if (typeof window !== 'undefined') {
-                        window.setTimeout(() => setAccountMenuOpen(true), 0);
-                      } else {
-                        setAccountMenuOpen(true);
-                      }
-                      return;
+          {/* Account menu (ChatGPT-like bottom-left) */}
+          <div className="border-border/60 mt-4 border-t pt-3">
+            <div ref={accountMenuContainerRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setSettingsOpen(false);
+                  if (sidebarCollapsed) {
+                    setSidebarCollapsed(false);
+                    if (typeof window !== 'undefined') {
+                      window.setTimeout(() => setAccountMenuOpen(true), 0);
+                    } else {
+                      setAccountMenuOpen(true);
                     }
-                    setAccountMenuOpen((v) => !v);
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-3 text-left hover:bg-muted',
-                    sidebarCollapsed && 'justify-center px-2',
-                    accountMenuOpen && !sidebarCollapsed && 'bg-muted'
-                  )}
-                  aria-label="Account"
-                  aria-expanded={accountMenuOpen}
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/70 text-sm font-semibold">
-                    {avatarText}
-                  </div>
-                  {!sidebarCollapsed && (
-                    <>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold">{accountName ?? '未登录'}</div>
-                        <div className="text-muted-foreground truncate text-xs">
-                          {sessionUser
-                            ? currentProject?.org_id || currentProject?.name || 'Personal account'
-                            : '公众模式'}
-                        </div>
+                    return;
+                  }
+                  setAccountMenuOpen((v) => !v);
+                }}
+                className={cn(
+                  'border-border/60 bg-background/60 hover:bg-muted flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left',
+                  sidebarCollapsed && 'justify-center px-2',
+                  accountMenuOpen && !sidebarCollapsed && 'bg-muted'
+                )}
+                aria-label="Account"
+                aria-expanded={accountMenuOpen}
+              >
+                <div className="border-border/60 bg-background/70 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold">
+                  {avatarText}
+                </div>
+                {!sidebarCollapsed && (
+                  <>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">
+                        {accountName ?? '未登录'}
                       </div>
-                      <CaretDown
-                        className={cn('h-4 w-4 text-muted-foreground transition-transform', accountMenuOpen && 'rotate-180')}
-                      />
-                    </>
-                  )}
-                </button>
-
-                {accountMenuOpen && !sidebarCollapsed && (
-                  <div className="absolute bottom-full left-0 z-50 mb-2 w-80 rounded-2xl border border-border/60 bg-popover/95 p-2 shadow-md backdrop-blur">
-                    {/* Header */}
-                    <div className="flex items-center justify-between gap-2 px-2 py-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <UserCircle className="h-5 w-5 text-muted-foreground" />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold">
-                            {accountName ?? '未登录'}
-                          </div>
-                          <div className="text-muted-foreground truncate text-xs">
-                            {accountSub ?? (sessionUser ? '' : '点击下方登录')}
-                          </div>
-                        </div>
+                      <div className="text-muted-foreground truncate text-xs">
+                        {sessionUser
+                          ? currentProject?.org_id || currentProject?.name || 'Personal account'
+                          : '公众模式'}
                       </div>
-                      {sessionUser && isMeMode && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            toastAlert({ title: '未实现', description: '暂未提供新增工作区能力' });
-                          }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-background/50 text-muted-foreground hover:bg-muted"
-                          title="Add workspace"
-                          aria-label="Add workspace"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      )}
                     </div>
+                    <CaretDown
+                      className={cn(
+                        'text-muted-foreground h-4 w-4 transition-transform',
+                        accountMenuOpen && 'rotate-180'
+                      )}
+                    />
+                  </>
+                )}
+              </button>
 
-                    {/* Workspaces (projects) */}
-                    {sessionUser && isMeMode && (
-                      <div className="px-1 pb-1">
-                        <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">
-                          工作区
+              {accountMenuOpen && !sidebarCollapsed && (
+                <div className="border-border/60 bg-popover/95 absolute bottom-full left-0 z-50 mb-2 w-80 rounded-2xl border p-2 shadow-md backdrop-blur">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-2 px-2 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <UserCircle className="text-muted-foreground h-5 w-5" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">
+                          {accountName ?? '未登录'}
                         </div>
-                        <div className="space-y-1">
-                          {projects.length === 0 ? (
-                            <div className="px-2 py-2 text-xs text-muted-foreground">暂无工作区</div>
-                          ) : (
-                            projects.map((p) => {
-                              const isSelected = p.id === (currentProjectId ?? currentProject?.id);
-                              const isDisabled = p.status === 'archived';
-                              return (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  disabled={isDisabled}
-                                  onClick={() => {
-                                    if (isDisabled) return;
-                                    setCurrentProjectId(p.id);
-                                    setAccountMenuOpen(false);
-                                  }}
-                                  className={cn(
-                                    'flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted',
-                                    isSelected && 'bg-muted/70',
-                                    isDisabled && 'opacity-60'
-                                  )}
-                                >
-                                  <div className="min-w-0">
-                                    <div className="truncate font-medium">{p.name}</div>
-                                    <div className="text-muted-foreground truncate text-[11px]">
-                                      {p.org_id || 'Personal account'}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {p.status === 'archived' && (
-                                      <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                                        DEACTIVATED
-                                      </span>
-                                    )}
-                                    {isSelected && <Check className="h-4 w-4 text-foreground" />}
-                                  </div>
-                                </button>
-                              );
-                            })
-                          )}
+                        <div className="text-muted-foreground truncate text-xs">
+                          {accountSub ?? (sessionUser ? '' : '点击下方登录')}
                         </div>
                       </div>
+                    </div>
+                    {sessionUser && isMeMode && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toastAlert({ title: '未实现', description: '暂未提供新增工作区能力' });
+                        }}
+                        className="border-border/60 bg-background/50 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                        title="Add workspace"
+                        aria-label="Add workspace"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
                     )}
+                  </div>
 
-                    <div className="my-2 h-px bg-border/60" />
+                  {/* Workspaces (projects) */}
+                  {sessionUser && isMeMode && (
+                    <div className="px-1 pb-1">
+                      <div className="text-muted-foreground px-2 py-1 text-[11px] font-semibold">
+                        工作区
+                      </div>
+                      <div className="space-y-1">
+                        {projects.length === 0 ? (
+                          <div className="text-muted-foreground px-2 py-2 text-xs">暂无工作区</div>
+                        ) : (
+                          projects.map((p) => {
+                            const isSelected = p.id === (currentProjectId ?? currentProject?.id);
+                            const isDisabled = p.status === 'archived';
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                disabled={isDisabled}
+                                onClick={() => {
+                                  if (isDisabled) return;
+                                  setCurrentProjectId(p.id);
+                                  setAccountMenuOpen(false);
+                                }}
+                                className={cn(
+                                  'hover:bg-muted flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm',
+                                  isSelected && 'bg-muted/70',
+                                  isDisabled && 'opacity-60'
+                                )}
+                              >
+                                <div className="min-w-0">
+                                  <div className="truncate font-medium">{p.name}</div>
+                                  <div className="text-muted-foreground truncate text-[11px]">
+                                    {p.org_id || 'Personal account'}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {p.status === 'archived' && (
+                                    <span className="border-border/60 bg-background/60 text-muted-foreground rounded-full border px-2 py-0.5 text-[10px] font-semibold">
+                                      DEACTIVATED
+                                    </span>
+                                  )}
+                                  {isSelected && <Check className="text-foreground h-4 w-4" />}
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
 
-                    {/* Actions */}
-                    <div className="space-y-1 px-1 pb-1">
-                      <button
-                        type="button"
-                        onClick={() => toastAlert({ title: '未实现', description: 'Add teammates' })}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
-                      >
-                        <UsersThree className="h-4 w-4 text-muted-foreground" />
-                        <span>Add teammates</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toastAlert({ title: '未实现', description: 'Workspace settings' })
-                        }
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
-                      >
-                        <GearSix className="h-4 w-4 text-muted-foreground" />
-                        <span>Workspace settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toastAlert({ title: '未实现', description: 'Personalization' })
-                        }
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
-                      >
-                        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-                        <span>Personalization</span>
-                      </button>
+                  <div className="bg-border/60 my-2 h-px" />
+
+                  {/* Actions */}
+                  <div className="space-y-1 px-1 pb-1">
+                    <button
+                      type="button"
+                      onClick={() => toastAlert({ title: '未实现', description: 'Add teammates' })}
+                      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
+                    >
+                      <UsersThree className="text-muted-foreground h-4 w-4" />
+                      <span>Add teammates</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toastAlert({ title: '未实现', description: 'Workspace settings' })
+                      }
+                      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
+                    >
+                      <GearSix className="text-muted-foreground h-4 w-4" />
+                      <span>Workspace settings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toastAlert({ title: '未实现', description: 'Personalization' })
+                      }
+                      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
+                    >
+                      <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+                      <span>Personalization</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        setSettingsOpen(true);
+                      }}
+                      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
+                    >
+                      <GearSix className="text-muted-foreground h-4 w-4" />
+                      <span>Settings</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toastAlert({ title: '未实现', description: 'Help' })}
+                      className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
+                    >
+                      <Question className="text-muted-foreground h-4 w-4" />
+                      <span>Help</span>
+                    </button>
+                  </div>
+
+                  <div className="bg-border/60 my-2 h-px" />
+
+                  <div className="px-1 pb-1">
+                    {sessionUser ? (
                       <button
                         type="button"
                         onClick={() => {
                           setAccountMenuOpen(false);
-                          setSettingsOpen(true);
+                          void handleLogout();
                         }}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
+                        className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
                       >
-                        <GearSix className="h-4 w-4 text-muted-foreground" />
-                        <span>Settings</span>
+                        <SignOut className="text-muted-foreground h-4 w-4" />
+                        <span>Log out</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => toastAlert({ title: '未实现', description: 'Help' })}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
+                    ) : (
+                      <a
+                        href="/login"
+                        className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm"
                       >
-                        <Question className="h-4 w-4 text-muted-foreground" />
-                        <span>Help</span>
-                      </button>
-                    </div>
-
-                    <div className="my-2 h-px bg-border/60" />
-
-                    <div className="px-1 pb-1">
-                      {sessionUser ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAccountMenuOpen(false);
-                            void handleLogout();
-                          }}
-                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
-                        >
-                          <SignOut className="h-4 w-4 text-muted-foreground" />
-                          <span>Log out</span>
-                        </button>
-                      ) : (
-                        <a
-                          href="/login"
-                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
-                        >
-                          <SignOut className="h-4 w-4 text-muted-foreground" />
-                          <span>Login</span>
-                        </a>
-                      )}
-                    </div>
+                        <SignOut className="text-muted-foreground h-4 w-4" />
+                        <span>Login</span>
+                      </a>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          </aside>
+          </div>
+        </aside>
       )}
 
       {/* Main column */}
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Top bar: session-level toolbar (model / title / share) */}
-	        <header className="sticky top-0 z-50 flex h-[var(--app-topbar-height,56px)] w-full items-center border-b border-border/60 bg-background/80 backdrop-blur">
-	          <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 md:px-0">
-	            <div className="flex items-center gap-2">
-	              {showSidebar && (
-	                <button
-	                  type="button"
-	                  onClick={() => setMobileSidebarOpen(true)}
-	                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted md:hidden"
-	                  aria-label="打开侧边栏"
-	                >
-	                  <List className="h-4 w-4" />
-	                </button>
-	              )}
-	              <label className="shrink-0">
-	                <span className="sr-only">选择模型</span>
-	                <select
-	                  aria-label="选择模型"
-	                  value={modelPreset}
-	                  onChange={(e) => setModelPreset(e.target.value as ModelPreset)}
-	                  className="h-8 rounded-full border border-border/60 bg-background/40 px-3 text-sm font-medium text-foreground shadow-sm outline-none hover:bg-muted focus:ring-2 focus:ring-ring/30"
-	                >
-	                  {MODEL_PRESETS.map((p) => (
-	                    <option key={p.value} value={p.value}>
-	                      {p.label}
-	                    </option>
-	                  ))}
-	                </select>
-	              </label>
-	            </div>
+        <header className="border-border/60 bg-background/80 sticky top-0 z-50 flex h-[var(--app-topbar-height,56px)] w-full items-center border-b backdrop-blur">
+          <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 md:px-0">
+            <div className="flex items-center gap-2">
+              {showSidebar && (
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border md:hidden"
+                  aria-label="打开侧边栏"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              )}
+              <label className="shrink-0">
+                <span className="sr-only">选择模型</span>
+                <select
+                  aria-label="选择模型"
+                  value={modelPreset}
+                  onChange={(e) => setModelPreset(e.target.value as ModelPreset)}
+                  className="border-border/60 bg-background/40 text-foreground hover:bg-muted focus:ring-ring/30 h-8 rounded-full border px-3 text-sm font-medium shadow-sm outline-none focus:ring-2"
+                >
+                  {MODEL_PRESETS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <div className="min-w-0 flex-1 px-1">
-              <div className="truncate text-sm font-semibold leading-5">{conversationTitle}</div>
+              <div className="truncate text-sm leading-5 font-semibold">{conversationTitle}</div>
               <div className="text-muted-foreground truncate text-[11px] leading-4">
                 {conversationSubtitle}
               </div>
             </div>
 
-	            <div className="flex items-center gap-1">
-		              {isPublicUnauthed ? (
-		                <>
-		                  <a
-		                    href="/login"
-		                    className="inline-flex h-9 items-center justify-center rounded-full border border-border/60 bg-background/40 px-4 text-sm font-semibold text-foreground hover:bg-muted"
-		                  >
-		                    登录
-		                  </a>
-		                  <div className="hidden sm:block">
-		                    <ThemeToggle className="w-[108px] border-border/60 bg-background/40" />
-		                  </div>
-		                  <a
-		                    href="/terms"
-		                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted"
-		                    aria-label="帮助"
-	                    title="帮助"
-	                  >
-	                    <Question className="h-4 w-4" />
-	                  </a>
-	                </>
-	              ) : (
-	                <>
-	                  <button
-	                    type="button"
-	                    onClick={handleShare}
-	                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted"
-	                    aria-label="分享"
-	                  >
-	                    <ShareNetwork className="h-4 w-4" />
-	                  </button>
-	                  <button
-	                    type="button"
-	                    onClick={handleExport}
-	                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted"
-	                    aria-label="导出"
-	                  >
-	                    <DownloadSimple className="h-4 w-4" />
-	                  </button>
-	                  <div ref={settingsContainerRef} className="relative">
-	                    <button
-	                      type="button"
-	                      onClick={() => setSettingsOpen((v) => !v)}
-	                      className={cn(
-	                        'inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted',
-	                        settingsOpen && 'bg-muted text-foreground'
-	                      )}
-	                      aria-label="设置"
-	                      aria-expanded={settingsOpen}
-	                    >
-	                      <GearSix className="h-4 w-4" />
-	                    </button>
+            <div className="flex items-center gap-1">
+              {isPublicUnauthed ? (
+                <>
+                  <a
+                    href="/login"
+                    className="border-border/60 bg-background/40 text-foreground hover:bg-muted inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold"
+                  >
+                    登录
+                  </a>
+                  <div className="hidden sm:block">
+                    <ThemeToggle className="border-border/60 bg-background/40 w-[108px]" />
+                  </div>
+                  <a
+                    href="/terms"
+                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    aria-label="帮助"
+                    title="帮助"
+                  >
+                    <Question className="h-4 w-4" />
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    aria-label="分享"
+                  >
+                    <ShareNetwork className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    aria-label="导出"
+                  >
+                    <DownloadSimple className="h-4 w-4" />
+                  </button>
+                  <div ref={settingsContainerRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSettingsOpen((v) => !v)}
+                      className={cn(
+                        'border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border',
+                        settingsOpen && 'bg-muted text-foreground'
+                      )}
+                      aria-label="设置"
+                      aria-expanded={settingsOpen}
+                    >
+                      <GearSix className="h-4 w-4" />
+                    </button>
 
-	                    {settingsOpen && (
-	                      <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-border/60 bg-popover p-3 shadow-md">
-	                        <div className="mb-3 flex items-start justify-between gap-2">
-	                          <div>
-	                            <div className="text-sm font-semibold">设置</div>
-	                            <div className="text-muted-foreground mt-0.5 text-xs">
-	                              外观与快捷入口
-	                            </div>
-	                          </div>
-	                          <button
-	                            type="button"
-	                            onClick={() => setSettingsOpen(false)}
-	                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted"
-	                            aria-label="关闭设置"
-	                          >
-	                            <X className="h-4 w-4" />
-	                          </button>
-	                        </div>
+                    {settingsOpen && (
+                      <div className="border-border/60 bg-popover absolute top-full right-0 z-50 mt-2 w-72 rounded-xl border p-3 shadow-md">
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <div>
+                            <div className="text-sm font-semibold">设置</div>
+                            <div className="text-muted-foreground mt-0.5 text-xs">
+                              外观与快捷入口
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSettingsOpen(false)}
+                            className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                            aria-label="关闭设置"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
 
-	                        <div className="space-y-3">
-	                          <div>
-	                            <div className="mb-1 text-xs font-semibold text-muted-foreground">主题</div>
-	                            <ThemeToggle />
-	                          </div>
-	                          <div className="flex items-center justify-between gap-2 text-xs">
-	                            <a className="underline underline-offset-4" href="/privacy">
-	                              隐私声明
-	                            </a>
-	                            <a className="underline underline-offset-4" href="/terms">
-	                              服务条款
-	                            </a>
-	                            {!sessionUser && (
-	                              <a className="underline underline-offset-4" href="/login">
-	                                登录
-	                              </a>
-	                            )}
-	                          </div>
-	                        </div>
-	                      </div>
-	                    )}
-	                  </div>
-	                </>
-	              )}
-	            </div>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-muted-foreground mb-1 text-xs font-semibold">
+                              主题
+                            </div>
+                            <ThemeToggle />
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <a className="underline underline-offset-4" href="/privacy">
+                              隐私声明
+                            </a>
+                            <a className="underline underline-offset-4" href="/terms">
+                              服务条款
+                            </a>
+                            {!sessionUser && (
+                              <a className="underline underline-offset-4" href="/login">
+                                登录
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -1084,7 +1116,7 @@ function AppShell({
             onClick={() => setMobileSidebarOpen(false)}
             aria-label="关闭侧边栏"
           />
-          <div className="absolute left-0 top-0 flex h-full w-80 max-w-[85vw] flex-col border-r border-border bg-sidebar/95 p-4 backdrop-blur">
+          <div className="border-border bg-sidebar/95 absolute top-0 left-0 flex h-full w-80 max-w-[85vw] flex-col border-r p-4 backdrop-blur">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <img src="/yulin-mhsa-mark.svg" alt="" className="block h-6 w-auto dark:hidden" />
@@ -1098,7 +1130,7 @@ function AppShell({
               <button
                 type="button"
                 onClick={() => setMobileSidebarOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/40 text-muted-foreground hover:bg-muted"
+                className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
                 aria-label="关闭"
               >
                 <X className="h-4 w-4" />
@@ -1107,11 +1139,11 @@ function AppShell({
 
             {/* Project pill (me mode only) */}
             {isMeMode && (
-              <div className="mb-4 relative">
+              <div className="relative mb-4">
                 <button
                   type="button"
                   onClick={() => setProjectMenuOpen((v) => !v)}
-                  className="flex w-full items-center justify-between rounded-md border border-border/60 bg-background/60 px-3 py-2 text-left text-xs hover:bg-muted"
+                  className="border-border/60 bg-background/60 hover:bg-muted flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs"
                   aria-haspopup="listbox"
                   aria-expanded={projectMenuOpen}
                 >
@@ -1119,7 +1151,7 @@ function AppShell({
                     <span className="truncate text-[13px] font-medium">
                       {currentProject ? currentProject.name : '加载项目中…'}
                     </span>
-                    <span className="truncate text-[11px] text-muted-foreground">
+                    <span className="text-muted-foreground truncate text-[11px]">
                       {currentProject
                         ? currentProject.org_id || '我的项目'
                         : projects.length === 0
@@ -1127,10 +1159,10 @@ function AppShell({
                           : ' '}
                     </span>
                   </div>
-                  <CaretDown className="ml-2 h-3 w-3 text-muted-foreground" />
+                  <CaretDown className="text-muted-foreground ml-2 h-3 w-3" />
                 </button>
                 {projectMenuOpen && projects.length > 0 && (
-                  <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border/60 bg-popover text-xs shadow-md">
+                  <div className="border-border/60 bg-popover absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border text-xs shadow-md">
                     {projects.map((p) => (
                       <button
                         key={p.id}
@@ -1140,12 +1172,12 @@ function AppShell({
                           setProjectMenuOpen(false);
                         }}
                         className={cn(
-                          'flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-muted',
+                          'hover:bg-muted flex w-full flex-col gap-0.5 px-3 py-2 text-left',
                           p.id === currentProject?.id ? 'bg-muted/70' : ''
                         )}
                       >
                         <span className="truncate text-[13px] font-medium">{p.name}</span>
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="text-muted-foreground truncate text-[11px]">
                           {p.org_id || '我的项目'}
                         </span>
                       </button>
@@ -1158,7 +1190,7 @@ function AppShell({
             <nav className="flex-1 space-y-1 text-sm">
               <button
                 type="button"
-                className={cn('flex w-full items-center gap-2 rounded-md px-3 py-2 hover:bg-muted')}
+                className={cn('hover:bg-muted flex w-full items-center gap-2 rounded-md px-3 py-2')}
               >
                 <ChatsCircle className="h-4 w-4" weight="fill" />
                 <span>会话</span>
@@ -1172,7 +1204,7 @@ function AppShell({
                   }}
                   disabled={creatingConversation}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-muted-foreground hover:bg-muted'
+                    'text-muted-foreground hover:bg-muted flex w-full items-center gap-2 rounded-md px-3 py-2 text-left'
                   )}
                 >
                   <PlusCircle className="h-4 w-4" />
@@ -1182,7 +1214,7 @@ function AppShell({
               <button
                 type="button"
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-muted-foreground hover:bg-muted hover:text-foreground'
+                  'text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-left'
                 )}
               >
                 <ClockCounterClockwise className="h-4 w-4" />
@@ -1191,7 +1223,7 @@ function AppShell({
               <button
                 type="button"
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-muted-foreground hover:bg-muted hover:text-foreground'
+                  'text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-left'
                 )}
               >
                 <SquaresFour className="h-4 w-4" />
@@ -1199,9 +1231,9 @@ function AppShell({
               </button>
             </nav>
 
-            <div className="mt-4 border-t border-border/60 pt-3">
+            <div className="border-border/60 mt-4 border-t pt-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-sm font-semibold">
+                <div className="border-border/60 bg-background/60 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold">
                   {avatarText}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1234,11 +1266,7 @@ function AppShell({
 function buildExportFilename(opts: { conversationId: string | null; title: string }) {
   const safeTitle = sanitizeFilenamePart(opts.title).slice(0, 40) || 'chat';
   const safeId = opts.conversationId ? sanitizeFilenamePart(opts.conversationId).slice(0, 12) : '';
-  const stamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, '-')
-    .replace('T', '_')
-    .slice(0, 19);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
   return `${safeTitle}${safeId ? `_${safeId}` : ''}_${stamp}.md`;
 }
 
@@ -1251,7 +1279,11 @@ function sanitizeFilenamePart(input: string) {
     .trim();
 }
 
-function exportMessagesToMarkdown(opts: { title: string; modelLabel: string; messages: UiMessageV1[] }) {
+function exportMessagesToMarkdown(opts: {
+  title: string;
+  modelLabel: string;
+  messages: UiMessageV1[];
+}) {
   const lines: string[] = [];
   lines.push(`# ${opts.title}`);
   lines.push('');
@@ -1260,8 +1292,7 @@ function exportMessagesToMarkdown(opts: { title: string; modelLabel: string; mes
   lines.push('');
 
   for (const m of opts.messages) {
-    const roleLabel =
-      m.role === 'human' ? 'User' : m.role === 'assistant' ? 'Assistant' : 'System';
+    const roleLabel = m.role === 'human' ? 'User' : m.role === 'assistant' ? 'Assistant' : 'System';
     lines.push(`## ${roleLabel}`);
     lines.push('');
     lines.push(m.text || '');

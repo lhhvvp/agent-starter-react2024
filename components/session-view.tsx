@@ -3,19 +3,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RoomEvent } from 'livekit-client';
 import { type AgentState, useRoomContext, useVoiceAssistant } from '@livekit/components-react';
-import { toastAlert } from '@/components/alert-toast';
-import { CanvasPane } from '@/components/canvas-pane';
 import { CanvasOverlay } from '@/components/canvas-overlay';
-import { WorkspacePane } from '@/components/workspace-pane';
-import { WorkspaceOverlay } from '@/components/workspace-overlay';
+import { CanvasPane } from '@/components/canvas-pane';
 import { ConversationPane } from '@/components/conversation-pane';
+import { toastAlert } from '@/components/livekit/alert-toast';
 import { TimelinePane } from '@/components/timeline/TimelinePane';
-import { useConversationTimeline } from '@/hooks/useConversationTimeline';
+import { UIBlocksBootstrap } from '@/components/ui-blocks/Bootstrap';
+import { WorkspaceOverlay } from '@/components/workspace-overlay';
+import { WorkspacePane } from '@/components/workspace-pane';
 import useConversationMessagesV1 from '@/hooks/useConversationMessagesV1';
+import { useConversationTimeline } from '@/hooks/useConversationTimeline';
 import { useDebugMode } from '@/hooks/useDebug';
 import type { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { UIBlocksBootstrap } from '@/components/ui-blocks/Bootstrap';
 
 function isAgentAvailable(agentState: AgentState) {
   return agentState == 'listening' || agentState == 'thinking' || agentState == 'speaking';
@@ -45,7 +45,10 @@ export const SessionView = ({
   const [roomConnected, setRoomConnected] = useState(room.state === 'connected');
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
-  const [activeArtifact, setActiveArtifact] = useState<{ id: string; projectId?: string | null } | null>(null);
+  const [activeArtifact, setActiveArtifact] = useState<{
+    id: string;
+    projectId?: string | null;
+  } | null>(null);
   const [rightSplit, setRightSplit] = useState<number>(0.4); // percentage of viewport width allocated to right canvas (0..1)
   const [dragging, setDragging] = useState(false);
   const layoutRef = useRef<HTMLDivElement | null>(null);
@@ -209,12 +212,16 @@ export const SessionView = ({
     window.addEventListener('touchend', onTouchEnd);
     return () => {
       window.removeEventListener('touchmove', onTouchMove);
-    window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchend', onTouchEnd);
     };
   }, [dragging]);
 
   // Surface selection: none | canvas | workspace
-  const surface: 'none' | 'canvas' | 'workspace' = canvasOpen ? 'canvas' : workspaceOpen ? 'workspace' : 'none';
+  const surface: 'none' | 'canvas' | 'workspace' = canvasOpen
+    ? 'canvas'
+    : workspaceOpen
+      ? 'workspace'
+      : 'none';
 
   const handleSelectSurface = (mode: 'none' | 'canvas' | 'workspace') => {
     if (mode === 'none') {
@@ -235,11 +242,7 @@ export const SessionView = ({
 
   return (
     // 整个 SessionView 占满可用高度（由外层 AppShell 控制），页面本身不再滚动，只在内部滚动
-    <main
-      ref={ref}
-      inert={disabled}
-      className={cn('h-full', !chatOpen && 'overflow-hidden')}
-    >
+    <main ref={ref} inert={disabled} className={cn('h-full', !chatOpen && 'overflow-hidden')}>
       {/* 内部容器固定填满 main，高度不再额外增加 padding，避免把底部 chatbox 推出视口 */}
       <div className="mx-auto h-full w-full">
         <div
@@ -299,11 +302,11 @@ export const SessionView = ({
                 onTouchStart={() => setDragging(true)}
               >
                 {/* Hit area */}
-                <div className="absolute inset-y-0 -left-2 right-2" />
+                <div className="absolute inset-y-0 right-2 -left-2" />
                 {/* Visual guide line */}
-                <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border" />
+                <div className="bg-border pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
                 {/* Hover hint */}
-                <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded bg-muted px-2 py-1 text-[10px] font-mono text-foreground/60 opacity-0 shadow group-hover:opacity-100">
+                <div className="bg-muted text-foreground/60 pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded px-2 py-1 font-mono text-[10px] opacity-0 shadow group-hover:opacity-100">
                   drag
                 </div>
               </div>
@@ -314,7 +317,12 @@ export const SessionView = ({
           {(canvasOpen || workspaceOpen) && (
             // 右侧 workspace / canvas 区通过 min-h-0 确保内部容器可以正确收缩并启用滚动
             <div className="hidden md:flex md:min-h-0 md:flex-col md:pr-3 md:pl-3">
-              <div className={cn('flex-1 min-h-0 border-b', workspaceOpen && !canvasOpen && 'overflow-y-auto')}>
+              <div
+                className={cn(
+                  'min-h-0 flex-1 border-b',
+                  workspaceOpen && !canvasOpen && 'overflow-y-auto'
+                )}
+              >
                 {canvasOpen && !workspaceOpen && <CanvasPane className="h-full" />}
                 {workspaceOpen && !canvasOpen && (
                   <WorkspacePane

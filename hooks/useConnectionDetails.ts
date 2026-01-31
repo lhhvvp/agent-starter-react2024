@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ConnectionDetails } from '@/app/api/connection-details/route';
-import { toastAlert } from '@/components/alert-toast';
+import { toastAlert } from '@/components/livekit/alert-toast';
 
 type RefreshOpts = { ticket?: string; profile?: { display_name?: string } };
 

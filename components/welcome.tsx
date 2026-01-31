@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ShieldCheck } from '@phosphor-icons/react/dist/ssr';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/livekit/button';
 import { cn } from '@/lib/utils';
 
 type WelcomeMode = 'ticket' | 'me' | 'public';
@@ -107,7 +107,7 @@ export const Welcome = ({
             </div>
           )}
 
-          <div className="rounded-2xl border border-border/60 bg-background/70 px-5 py-4 shadow-sm backdrop-blur">
+          <div className="border-border/60 bg-background/70 rounded-2xl border px-5 py-4 shadow-sm backdrop-blur">
             <img
               src={logo}
               alt={companyName ? `${companyName} Logo` : 'Logo'}
@@ -120,9 +120,9 @@ export const Welcome = ({
             />
 
             {(mode === 'ticket' || mode === 'public') && (
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1">
-                  <ShieldCheck className="h-4 w-4 text-primary" weight="fill" />
+              <div className="text-muted-foreground mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <span className="border-border/60 bg-background/60 inline-flex items-center gap-1 rounded-full border px-2.5 py-1">
+                  <ShieldCheck className="text-primary h-4 w-4" weight="fill" />
                   官方服务
                 </span>
                 <span className="opacity-60">·</span>
@@ -156,13 +156,9 @@ export const Welcome = ({
         <p className="text-fg2 mt-2 text-sm leading-6 md:text-base">
           {mode === 'me' ? '登录后可查看历史会话与工作区。' : '免登录 · 7×24 小时 · 支持语音与文字'}
         </p>
-        {companyName && (
-          <p className="text-fg3 mt-1 text-xs md:text-sm">
-            {companyName}
-          </p>
-        )}
+        {companyName && <p className="text-fg3 mt-1 text-xs md:text-sm">{companyName}</p>}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-foreground shadow-sm md:text-sm">
+          <span className="border-primary/20 bg-primary/10 text-foreground inline-flex items-center rounded-full border px-4 py-1.5 text-xs font-semibold shadow-sm md:text-sm">
             陕西中融辰知科技有限公司 版权所有
           </span>
         </div>
@@ -170,11 +166,11 @@ export const Welcome = ({
 
       {(mode === 'public' || mode === 'ticket') && (
         <div className="mt-5 w-full max-w-lg text-left">
-          <div className="grid gap-3 rounded-xl border border-border/60 bg-background/70 p-4 backdrop-blur">
+          <div className="border-border/60 bg-background/70 grid gap-3 rounded-xl border p-4 backdrop-blur">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">称呼（可选）</label>
+              <label className="text-muted-foreground text-xs">称呼（可选）</label>
               <input
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none"
+                className="bg-background w-full rounded-md border px-3 py-2 text-sm outline-none"
                 placeholder="如：张先生（请勿输入身份证/手机号等敏感信息）"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -183,7 +179,7 @@ export const Welcome = ({
 
             {mode === 'public' && (
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">你可以从下面直接开始：</div>
+                <div className="text-muted-foreground text-xs">你可以从下面直接开始：</div>
                 <div className="flex flex-wrap gap-2">
                   {suggestedIntents.map((t) => (
                     <button
@@ -217,9 +213,9 @@ export const Welcome = ({
                 {useTicket && (
                   <div className="mt-3 space-y-2">
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs text-muted-foreground">Ticket</label>
+                      <label className="text-muted-foreground text-xs">Ticket</label>
                       <input
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none"
+                        className="bg-background w-full rounded-md border px-3 py-2 text-sm outline-none"
                         placeholder="tkt_..."
                         value={ticket}
                         onChange={(e) => setTicket(e.target.value)}
@@ -231,7 +227,7 @@ export const Welcome = ({
             )}
 
             {mode === 'public' && (
-              <label className="flex cursor-pointer items-start gap-2 text-xs text-muted-foreground">
+              <label className="text-muted-foreground flex cursor-pointer items-start gap-2 text-xs">
                 <input
                   type="checkbox"
                   className="mt-0.5"
@@ -266,7 +262,7 @@ export const Welcome = ({
       </Button>
 
       {mode !== 'me' && (
-        <div className="mt-4 flex items-center justify-center text-xs text-muted-foreground">
+        <div className="text-muted-foreground mt-4 flex items-center justify-center text-xs">
           <a className="underline underline-offset-4" href="/login">
             工作人员登录
           </a>

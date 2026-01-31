@@ -1,20 +1,20 @@
 'use client';
 
 import * as React from 'react';
+import { toast } from 'sonner';
 import type { MessageFormatter, ReceivedChatMessage } from '@livekit/components-react';
 import {
   ArrowClockwiseIcon,
   CopyIcon,
-  DownloadSimpleIcon,
   DotsThreeVerticalIcon,
+  DownloadSimpleIcon,
   ShareIcon,
   SpeakerHighIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from '@phosphor-icons/react/dist/ssr';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { makeEventId, useReliableUIEventSender } from '@/hooks/useReliableUIEventSender';
+import { cn } from '@/lib/utils';
 import { useChatMessage } from './hooks/utils';
 
 export interface ChatEntryProps extends React.HTMLAttributes<HTMLLIElement> {
@@ -70,10 +70,7 @@ export const ChatEntry = ({
   const readAloudStartedAtRef = React.useRef<number | null>(null);
 
   const links = React.useMemo(() => extractUrls(entry.message), [entry.message]);
-  const codeBlocks = React.useMemo(
-    () => extractFencedCodeBlocks(entry.message),
-    [entry.message]
-  );
+  const codeBlocks = React.useMemo(() => extractFencedCodeBlocks(entry.message), [entry.message]);
 
   React.useEffect(() => {
     if (!menuOpen && !downReasonOpen) return;
@@ -170,56 +167,52 @@ export const ChatEntry = ({
       { timeoutMs: 1200, maxRetries: 5 }
     );
 
-    const ok = speakText(
-      entry.message ?? '',
-      locale,
-      {
-        onStart: () => {
-          readAloudStartedAtRef.current = startedAt;
-          setReadAloudPending(false);
-        },
-        onEnd: () => {
-          const durationMs = Date.now() - startedAt;
-          readAloudStartedAtRef.current = null;
-          void sendMessageInteractionEvent(
-            {
-              name: 'msg.read_aloud.complete',
-              args: {
-                messageId: String(entry.id),
-                eventId: makeEventId('evt'),
-                clientTsMs: Date.now(),
-                engine: 'browser',
-                lang: locale,
-                duration_ms: durationMs,
-                ...(llmCallId ? { llmCallId } : {}),
-                ...(traceId ? { traceId } : {}),
-              },
+    const ok = speakText(entry.message ?? '', locale, {
+      onStart: () => {
+        readAloudStartedAtRef.current = startedAt;
+        setReadAloudPending(false);
+      },
+      onEnd: () => {
+        const durationMs = Date.now() - startedAt;
+        readAloudStartedAtRef.current = null;
+        void sendMessageInteractionEvent(
+          {
+            name: 'msg.read_aloud.complete',
+            args: {
+              messageId: String(entry.id),
+              eventId: makeEventId('evt'),
+              clientTsMs: Date.now(),
+              engine: 'browser',
+              lang: locale,
+              duration_ms: durationMs,
+              ...(llmCallId ? { llmCallId } : {}),
+              ...(traceId ? { traceId } : {}),
             },
-            { timeoutMs: 1200, maxRetries: 5 }
-          );
-        },
-        onError: (errorCode) => {
-          readAloudStartedAtRef.current = null;
-          setReadAloudPending(false);
-          void sendMessageInteractionEvent(
-            {
-              name: 'msg.read_aloud.complete',
-              args: {
-                messageId: String(entry.id),
-                eventId: makeEventId('evt'),
-                clientTsMs: Date.now(),
-                engine: 'browser',
-                lang: locale,
-                error_code: errorCode,
-                ...(llmCallId ? { llmCallId } : {}),
-                ...(traceId ? { traceId } : {}),
-              },
+          },
+          { timeoutMs: 1200, maxRetries: 5 }
+        );
+      },
+      onError: (errorCode) => {
+        readAloudStartedAtRef.current = null;
+        setReadAloudPending(false);
+        void sendMessageInteractionEvent(
+          {
+            name: 'msg.read_aloud.complete',
+            args: {
+              messageId: String(entry.id),
+              eventId: makeEventId('evt'),
+              clientTsMs: Date.now(),
+              engine: 'browser',
+              lang: locale,
+              error_code: errorCode,
+              ...(llmCallId ? { llmCallId } : {}),
+              ...(traceId ? { traceId } : {}),
             },
-            { timeoutMs: 1200, maxRetries: 5 }
-          );
-        },
-      }
-    );
+          },
+          { timeoutMs: 1200, maxRetries: 5 }
+        );
+      },
+    });
 
     if (!ok) {
       setReadAloudPending(false);
@@ -331,7 +324,7 @@ export const ChatEntry = ({
         <div
           ref={popoverRootRef}
           className={cn(
-            'mt-0.5 flex items-center gap-1 text-muted-foreground',
+            'text-muted-foreground mt-0.5 flex items-center gap-1',
             'opacity-100',
             'mr-auto'
           )}
@@ -358,7 +351,9 @@ export const ChatEntry = ({
             <ChatEntryActionButton
               onClick={handleThumbDown}
               label="踩"
-              title={interactions?.myReaction === 'down' && downReason ? `踩（${downReason}）` : '踩'}
+              title={
+                interactions?.myReaction === 'down' && downReason ? `踩（${downReason}）` : '踩'
+              }
               count={interactions?.reactions?.down}
               active={interactions?.myReaction === 'down'}
               disabled={reactionPending}
@@ -366,17 +361,9 @@ export const ChatEntry = ({
               <ThumbsDownIcon size={16} />
             </ChatEntryActionButton>
             {downReasonOpen && (
-              <div className="bg-popover text-popover-foreground absolute left-0 z-50 mt-1 w-52 rounded-md border border-border p-1 shadow-md">
-                <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                  选择原因
-                </div>
-                {[
-                  '不准确/有错误',
-                  '不相关',
-                  '表达不清晰',
-                  '有害/违规',
-                  '其他',
-                ].map((r) => (
+              <div className="bg-popover text-popover-foreground border-border absolute left-0 z-50 mt-1 w-52 rounded-md border p-1 shadow-md">
+                <div className="text-muted-foreground px-2 py-1 text-xs font-medium">选择原因</div>
+                {['不准确/有错误', '不相关', '表达不清晰', '有害/违规', '其他'].map((r) => (
                   <MenuItem
                     key={r}
                     onClick={() => {
@@ -414,9 +401,9 @@ export const ChatEntry = ({
               <div
                 role="menu"
                 aria-label="消息菜单"
-                className="bg-popover text-popover-foreground absolute left-0 z-50 mt-1 w-56 rounded-md border border-border p-1 shadow-md"
+                className="bg-popover text-popover-foreground border-border absolute left-0 z-50 mt-1 w-56 rounded-md border p-1 shadow-md"
               >
-                <div className="px-2 py-1 text-xs text-muted-foreground">
+                <div className="text-muted-foreground px-2 py-1 text-xs">
                   {formatMessageTimestamp(time, locale)}
                 </div>
                 {codeBlocks.length > 0 && (
@@ -478,8 +465,8 @@ export const ChatEntry = ({
                 />
 
                 {links.length > 0 && (
-                  <div className="mt-1 border-t border-border pt-1">
-                    <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                  <div className="border-border mt-1 border-t pt-1">
+                    <div className="text-muted-foreground px-2 py-1 text-xs font-medium">
                       链接 ({links.length})
                     </div>
                     <div className="max-h-40 overflow-auto">
@@ -671,9 +658,7 @@ function extractUrls(text: string): string[] {
   if (!text) return [];
   const matches = text.match(/https?:\/\/[^\s<>()\[\]{}]+/g) ?? [];
 
-  const cleaned = matches
-    .map((m) => m.replace(/[),.;!?]+$/, ''))
-    .filter((m) => m.length > 0);
+  const cleaned = matches.map((m) => m.replace(/[),.;!?]+$/, '')).filter((m) => m.length > 0);
 
   return Array.from(new Set(cleaned));
 }

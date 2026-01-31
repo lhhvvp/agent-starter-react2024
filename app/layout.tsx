@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { ApplyThemeScript } from '@/components/apply-theme-script';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getAppConfig } from '@/lib/utils';
-import './globals.css';
+import '@/styles/globals.css';
 
 const publicSans = Public_Sans({
   variable: '--font-public-sans',
@@ -14,22 +14,22 @@ const publicSans = Public_Sans({
 const commitMono = localFont({
   src: [
     {
-      path: './fonts/CommitMono-400-Regular.otf',
+      path: '../fonts/CommitMono-400-Regular.otf',
       weight: '400',
       style: 'normal',
     },
     {
-      path: './fonts/CommitMono-700-Regular.otf',
+      path: '../fonts/CommitMono-700-Regular.otf',
       weight: '700',
       style: 'normal',
     },
     {
-      path: './fonts/CommitMono-400-Italic.otf',
+      path: '../fonts/CommitMono-400-Italic.otf',
       weight: '400',
       style: 'italic',
     },
     {
-      path: './fonts/CommitMono-700-Italic.otf',
+      path: '../fonts/CommitMono-700-Italic.otf',
       weight: '700',
       style: 'italic',
     },

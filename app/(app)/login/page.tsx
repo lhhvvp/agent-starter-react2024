@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeftIcon,
@@ -13,8 +13,8 @@ import {
   ShieldCheckIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react/dist/ssr';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/livekit/alert';
+import { Button } from '@/components/livekit/button';
 import { cn } from '@/lib/utils';
 
 const COPYRIGHT_TEXT = '陕西中融辰知科技有限公司 版权所有';
@@ -44,8 +44,8 @@ function FeatureItem({
   description: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 backdrop-blur">
-      <div className="mt-0.5 inline-flex size-9 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+    <div className="border-border/60 bg-background/60 flex items-start gap-3 rounded-xl border p-3 backdrop-blur">
+      <div className="border-primary/20 bg-primary/10 text-primary mt-0.5 inline-flex size-9 items-center justify-center rounded-full border">
         <Icon weight="bold" className="size-4" />
       </div>
       <div className="min-w-0">
@@ -188,7 +188,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative isolate h-svh w-full overflow-auto">
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden login-bg-root">
+      <div className="login-bg-root pointer-events-none absolute inset-0 z-0 overflow-hidden">
         {/* Animated background (Manus/ChatGPT-like subtle motion) */}
         <div className="login-bg-base" />
         <div className="login-bg-blobs">
@@ -201,7 +201,7 @@ export default function LoginPage() {
       </div>
 
       {debugBg && (
-        <div className="pointer-events-none fixed bottom-3 left-3 z-[9999] rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur">
+        <div className="border-border/60 bg-background/80 text-foreground pointer-events-none fixed bottom-3 left-3 z-[9999] rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm backdrop-blur">
           BG DEBUG ON
         </div>
       )}
@@ -209,8 +209,8 @@ export default function LoginPage() {
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-stretch gap-8 px-4 pt-24 pb-10 md:flex-row md:items-center md:gap-10 md:px-8 md:pt-28">
         {/* Left: brand / medical-insurance-themed panel */}
         <div className="hidden w-full max-w-md flex-col justify-center md:flex">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-semibold text-foreground shadow-sm">
-            <ShieldCheckIcon weight="fill" className="size-4 text-primary" />
+          <div className="border-primary/20 bg-primary/10 text-foreground inline-flex w-fit items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold shadow-sm">
+            <ShieldCheckIcon weight="fill" className="text-primary size-4" />
             官方服务 · 工作人员入口
           </div>
 
@@ -240,7 +240,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6">
-            <span className="inline-flex items-center rounded-full border border-primary/20 bg-background/60 px-4 py-2 text-xs font-semibold text-foreground shadow-sm">
+            <span className="border-primary/20 bg-background/60 text-foreground inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold shadow-sm">
               {COPYRIGHT_TEXT}
             </span>
           </div>
@@ -249,11 +249,11 @@ export default function LoginPage() {
         {/* Right: login card */}
         <div className="w-full md:flex md:flex-1 md:justify-end">
           <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-border/60 bg-background/70 p-6 shadow-sm backdrop-blur">
+            <div className="border-border/60 bg-background/70 rounded-2xl border p-6 shadow-sm backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
-                    <div className="inline-flex size-10 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10">
+                    <div className="border-primary/15 bg-primary/10 inline-flex size-10 items-center justify-center rounded-2xl border">
                       <img
                         src="/yulin-mhsa-mark.svg"
                         alt=""
@@ -284,7 +284,7 @@ export default function LoginPage() {
 
                 <a
                   href="/"
-                  className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-3 py-2 text-xs font-semibold transition-colors"
+                  className="text-muted-foreground hover:text-foreground border-border/60 bg-background/60 inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold transition-colors"
                 >
                   <ArrowLeftIcon weight="bold" className="size-4" />
                   返回
@@ -297,8 +297,8 @@ export default function LoginPage() {
                     <span className="text-muted-foreground block text-xs font-medium">
                       工作邮箱
                     </span>
-                    <div className="mt-1 flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-3 py-2 transition-shadow focus-within:border-primary/25 focus-within:ring-4 focus-within:ring-primary/10">
-                      <EnvelopeSimpleIcon className="size-4 text-muted-foreground" weight="bold" />
+                    <div className="border-border/60 bg-background/80 focus-within:border-primary/25 focus-within:ring-primary/10 mt-1 flex items-center gap-2 rounded-md border px-3 py-2 transition-shadow focus-within:ring-4">
+                      <EnvelopeSimpleIcon className="text-muted-foreground size-4" weight="bold" />
                       <input
                         id="email"
                         type="email"
@@ -356,8 +356,8 @@ export default function LoginPage() {
                     <span className="text-muted-foreground block text-xs font-medium">
                       一次性 Token
                     </span>
-                    <div className="mt-1 flex items-center gap-2 rounded-md border border-border/60 bg-background/80 px-3 py-2 transition-shadow focus-within:border-primary/25 focus-within:ring-4 focus-within:ring-primary/10">
-                      <KeyIcon className="size-4 text-muted-foreground" weight="bold" />
+                    <div className="border-border/60 bg-background/80 focus-within:border-primary/25 focus-within:ring-primary/10 mt-1 flex items-center gap-2 rounded-md border px-3 py-2 transition-shadow focus-within:ring-4">
+                      <KeyIcon className="text-muted-foreground size-4" weight="bold" />
                       <input
                         id="token"
                         type="text"
@@ -419,8 +419,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <div className="mt-6 border-t border-border/60 pt-4 text-center">
-                <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-semibold text-foreground shadow-sm">
+              <div className="border-border/60 mt-6 border-t pt-4 text-center">
+                <div className="border-primary/20 bg-primary/10 text-foreground inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold shadow-sm">
                   {COPYRIGHT_TEXT}
                 </div>
               </div>
@@ -428,7 +428,7 @@ export default function LoginPage() {
 
             <div className="text-muted-foreground mt-4 text-center text-xs md:hidden">
               <span className="inline-flex items-center gap-1">
-                <ShieldCheckIcon weight="fill" className="size-4 text-primary" />
+                <ShieldCheckIcon weight="fill" className="text-primary size-4" />
                 官方服务 · 便民咨询
               </span>
             </div>

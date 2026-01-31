@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Room } from 'livekit-client';
 import { RoomContext } from '@livekit/components-react';
-import { toastAlert } from '@/components/alert-toast';
+import { toastAlert } from '@/components/livekit/alert-toast';
 import { ClientLogProvider } from '@/components/client-log/ClientLogProvider';
 import useConnectionDetails from '@/hooks/useConnectionDetails';
 import { cn } from '@/lib/utils';

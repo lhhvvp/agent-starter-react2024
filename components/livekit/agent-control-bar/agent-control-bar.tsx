@@ -5,14 +5,14 @@ import { useCallback } from 'react';
 import { Track } from 'livekit-client';
 import { BarVisualizer } from '@livekit/components-react';
 import { ChatTextIcon, PhoneDisconnectIcon } from '@phosphor-icons/react/dist/ssr';
-import { ChatInput } from '@/components/livekit/chat/chat-input';
-import { Button } from '@/components/ui/button';
-import { Toggle } from '@/components/ui/toggle';
+import { Button } from '@/components/livekit/button';
+import { Toggle } from '@/components/livekit/toggle';
 import { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { DeviceSelect } from '../device-select';
-import { TrackToggle } from '../track-toggle';
-import { UseAgentControlBarProps, useAgentControlBar } from './hooks/use-agent-control-bar';
+import { ChatInput } from './chat-input';
+import { UseAgentControlBarProps, useAgentControlBar } from './hooks/use-input-controls';
+import { TrackDeviceSelect } from './track-device-select';
+import { TrackToggle } from './track-toggle';
 
 export interface AgentControlBarProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -83,6 +83,7 @@ export function AgentControlBar({
   } = useAgentControlBar({
     controls,
     saveUserChoices,
+    onDeviceError,
   });
 
   const handleSendMessage = async (message: string) => {
@@ -174,7 +175,7 @@ export function AgentControlBar({
                 </BarVisualizer>
               </TrackToggle>
               <hr className="bg-separator1 peer-data-[state=off]/track:bg-separatorSerious relative z-10 -mr-px hidden h-4 w-px md:block" />
-              <DeviceSelect
+              <TrackDeviceSelect
                 size="sm"
                 kind="audioinput"
                 onMediaDeviceError={onMicrophoneDeviceSelectError}
@@ -203,7 +204,7 @@ export function AgentControlBar({
                 className="peer/track relative w-auto rounded-r-none pr-3 pl-3 disabled:opacity-100 md:border-r-0 md:pr-2"
               />
               <hr className="bg-separator1 peer-data-[state=off]/track:bg-separatorSerious relative z-10 -mr-px hidden h-4 w-px md:block" />
-              <DeviceSelect
+              <TrackDeviceSelect
                 size="sm"
                 kind="videoinput"
                 onMediaDeviceError={onCameraDeviceSelectError}
@@ -254,7 +255,7 @@ export function AgentControlBar({
                 aria-label="Hide workspace panes"
                 pressed={surface === 'none'}
                 onPressedChange={() => onSelectSurface('none')}
-                className="font-mono h-full px-2"
+                className="h-full px-2 font-mono"
               >
                 NONE
               </Toggle>
@@ -263,7 +264,7 @@ export function AgentControlBar({
                 aria-label="Show canvas pane"
                 pressed={surface === 'canvas'}
                 onPressedChange={() => onSelectSurface('canvas')}
-                className="font-mono h-full px-2"
+                className="h-full px-2 font-mono"
               >
                 CANVAS
               </Toggle>
@@ -272,7 +273,7 @@ export function AgentControlBar({
                 aria-label="Show workspace pane"
                 pressed={surface === 'workspace'}
                 onPressedChange={() => onSelectSurface('workspace')}
-                className="font-mono h-full px-2"
+                className="h-full px-2 font-mono"
               >
                 WORK
               </Toggle>
