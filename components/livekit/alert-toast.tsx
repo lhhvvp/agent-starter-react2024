@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { WarningIcon } from '@phosphor-icons/react/dist/ssr';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/livekit/alert';
 
 interface ToastProps {
   id: string | number;
@@ -18,11 +18,11 @@ export function toastAlert(toast: Omit<ToastProps, 'id'>) {
   );
 }
 
-function AlertToast(props: ToastProps) {
+export function AlertToast(props: ToastProps) {
   const { title, description, id } = props;
 
   return (
-    <Alert onClick={() => sonnerToast.dismiss(id)} className="bg-accent">
+    <Alert onClick={() => sonnerToast.dismiss(id)} className="bg-accent w-full md:w-[364px]">
       <WarningIcon weight="bold" />
       <AlertTitle>{title}</AlertTitle>
       {description && <AlertDescription>{description}</AlertDescription>}

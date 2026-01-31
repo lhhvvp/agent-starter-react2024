@@ -51,7 +51,7 @@ agent-starter-react/
 > [!TIP]
 > If you'd like to try this application without modification, you can deploy an instance in just a few clicks with [LiveKit Cloud Sandbox](https://cloud.livekit.io/projects/p_/sandbox/templates/agent-starter-react).
 
-[![Open on LiveKit](https://img.shields.io/badge/Open%20on%20LiveKit%20Cloud-002CF2?style=for-the-badge&logo=external-link)](https://cloud.livekit.io/projects/p_/sandbox/templates/voice-assistant-frontend)
+[![Open on LiveKit](https://img.shields.io/badge/Open%20on%20LiveKit%20Cloud-002CF2?style=for-the-badge&logo=external-link)](https://cloud.livekit.io/projects/p_/sandbox/templates/agent-starter-react)
 
 Run the following command to automatically clone this template.
 
@@ -77,22 +77,33 @@ This starter is designed to be flexible so you can adapt it to your specific age
 #### Example: App configuration (`app-config.ts`)
 
 ```ts
-export const APP_CONFIG_DEFAULTS = {
+export const APP_CONFIG_DEFAULTS: AppConfig = {
   companyName: 'LiveKit',
   pageTitle: 'LiveKit Voice Agent',
   pageDescription: 'A voice agent built with LiveKit',
+
   supportsChatInput: true,
   supportsVideoInput: true,
   supportsScreenShare: true,
+  isPreConnectBufferEnabled: true,
+
   logo: '/lk-logo.svg',
   accent: '#002cf2',
   logoDark: '/lk-logo-dark.svg',
   accentDark: '#1fd5f9',
   startButtonText: 'Start call',
+
+  // for LiveKit Cloud Sandbox
+  sandboxId: undefined,
+  agentName: undefined,
 };
 ```
 
 You can update these values in [`app-config.ts`](./app-config.ts) to customize branding, features, and UI text for your deployment.
+
+> [!NOTE]
+> The `sandboxId` and `agentName` are for the LiveKit Cloud Sandbox environment.
+> They are not used for local development.
 
 #### Environment Variables
 

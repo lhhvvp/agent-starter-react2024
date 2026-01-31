@@ -161,6 +161,7 @@ export default async function Image() {
             gap: 10,
           }}
         >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <img src={wordmarkSrcBase64} width={wordmarkSize.width} height={wordmarkSize.height} />
         </div>
         {/* logo */}
@@ -174,6 +175,7 @@ export default async function Image() {
             gap: 10,
           }}
         >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <img src={logoSrcBase64} width={logoSize.width} height={logoSize.height} />
         </div>
         {/* title */}

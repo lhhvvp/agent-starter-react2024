@@ -11,13 +11,8 @@ import {
   VideoCameraIcon,
   VideoCameraSlashIcon,
 } from '@phosphor-icons/react/dist/ssr';
-import { Toggle } from '@/components/ui/toggle';
+import { Toggle } from '@/components/livekit/toggle';
 import { cn } from '@/lib/utils';
-
-export type TrackToggleProps = React.ComponentProps<typeof Toggle> & {
-  source: Parameters<typeof useTrackToggle>[0]['source'];
-  pending?: boolean;
-};
 
 function getSourceIcon(source: Track.Source, enabled: boolean, pending = false) {
   if (pending) {
@@ -35,6 +30,11 @@ function getSourceIcon(source: Track.Source, enabled: boolean, pending = false) 
       return React.Fragment;
   }
 }
+
+export type TrackToggleProps = React.ComponentProps<typeof Toggle> & {
+  source: Parameters<typeof useTrackToggle>[0]['source'];
+  pending?: boolean;
+};
 
 export function TrackToggle({ source, pressed, pending, className, ...props }: TrackToggleProps) {
   const IconComponent = getSourceIcon(source, pressed ?? false, pending);
