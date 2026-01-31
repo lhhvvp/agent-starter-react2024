@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRoomContext } from '@livekit/components-react';
 import useChatAndTranscription from '@/hooks/useChatAndTranscription';
+import { makeEventId, useReliableUIEventSender } from '@/hooks/useReliableUIEventSender';
 
 /**
  * 后端历史消息 DTO（V1 最小子集）
@@ -29,7 +30,18 @@ interface HistoryMessageDto {
   }>;
   ts_ms: number;
   created_at: string;
+  interactions?: {
+    reactions?: { up?: number; down?: number };
+    feedback_count?: number;
+    my_reaction?: 'up' | 'down' | 'none' | null;
+  };
+  llmCallId?: string | null;
+  llm_call_id?: string | null;
+  traceId?: string | null;
+  trace_id?: string | null;
 }
+
+export type ReactionValue = 'up' | 'down' | 'none';
 
 /**
  * 统一 UI 消息模型（V1 精简版）
@@ -45,6 +57,13 @@ export interface UiMessageV1 {
   source: 'http' | 'livekit' | 'local';
   status: 'pending' | 'completed';
   blocks?: UiBlockV1[];
+  interactions?: {
+    reactions: { up: number; down: number };
+    feedbackCount: number;
+    myReaction: ReactionValue;
+  };
+  llmCallId?: string | null;
+  traceId?: string | null;
 }
 
 export interface UiBlockTextV1 {
@@ -92,6 +111,15 @@ interface ChatMessageEnvelopeV1 {
   source?: string;
   status?: string;
   content?: string;
+  interactions?: {
+    reactions?: { up?: number; down?: number };
+    feedback_count?: number;
+    my_reaction?: 'up' | 'down' | 'none' | null;
+  };
+  llmCallId?: string | null;
+  llm_call_id?: string | null;
+  traceId?: string | null;
+  trace_id?: string | null;
   blocks?: Array<{
     type: string;
     schema?: string | null;
@@ -159,6 +187,10 @@ function fromHistoryDtoV1(dto: HistoryMessageDto, localIdentity?: string): UiMes
       ? dto.sender_identity === localIdentity
       : dto.role === 'human';
 
+  const interactions = normalizeInteractions(dto.interactions);
+  const llmCallId = dto.llmCallId ?? dto.llm_call_id ?? null;
+  const traceId = dto.traceId ?? dto.trace_id ?? null;
+
   return {
     id: dto.message_id,
     conversationId: dto.conversation_id,
@@ -170,6 +202,9 @@ function fromHistoryDtoV1(dto: HistoryMessageDto, localIdentity?: string): UiMes
     source: 'http',
     status: 'completed',
     blocks: uiBlocks.length ? uiBlocks : undefined,
+    interactions: interactions ?? undefined,
+    llmCallId,
+    traceId,
   };
 }
 
@@ -184,9 +219,13 @@ function fromHistoryDtoV1(dto: HistoryMessageDto, localIdentity?: string): UiMes
 export default function useConversationMessagesV1(conversationId?: string | null) {
   const room = useRoomContext();
   const { messages: liveMessagesRaw, send: rawSend } = useChatAndTranscription();
+  const { sendMessageInteractionEvent } = useReliableUIEventSender();
 
   const [historyMessages, setHistoryMessages] = useState<UiMessageV1[]>([]);
   const [pendingMessages, setPendingMessages] = useState<UiMessageV1[]>([]);
+  const [interactionOverrides, setInteractionOverrides] = useState<
+    Record<string, UiMessageV1['interactions']>
+  >({});
 
   // 拉取首屏历史
   useEffect(() => {
@@ -200,7 +239,7 @@ export default function useConversationMessagesV1(conversationId?: string | null
     (async () => {
       try {
         const res = await fetch(
-          `/api/conversations/${conversationId}/messages?limit=50&view=chat`
+          `/api/conversations/${conversationId}/messages?limit=50&view=chat&include_interactions=true`
         );
         if (!res.ok) {
           // 失败时直接忽略历史，保留实时流
@@ -278,6 +317,9 @@ export default function useConversationMessagesV1(conversationId?: string | null
                 ? Date.parse(env.created_at)
                 : msg.timestamp;
           const isLocal = env.role === 'human';
+          const interactions = normalizeInteractions(env.interactions);
+          const llmCallId = env.llmCallId ?? env.llm_call_id ?? null;
+          const traceId = env.traceId ?? env.trace_id ?? null;
 
           const uiBlocks: UiBlockV1[] = [];
           for (const b of textBlocks) {
@@ -320,6 +362,9 @@ export default function useConversationMessagesV1(conversationId?: string | null
             source: 'livekit',
             status: 'completed',
             blocks: uiBlocks.length ? uiBlocks : undefined,
+            interactions: interactions ?? undefined,
+            llmCallId,
+            traceId,
           });
 
           continue;
@@ -399,6 +444,149 @@ export default function useConversationMessagesV1(conversationId?: string | null
     return all;
   }, [historyMessages, liveMessages, pendingMessages]);
 
+  const messagesWithOverrides: UiMessageV1[] = useMemo(() => {
+    if (!Object.keys(interactionOverrides).length) return mergedMessages;
+    return mergedMessages.map((m) => {
+      const override = interactionOverrides[m.id];
+      if (!override) return m;
+      return { ...m, interactions: override ?? m.interactions };
+    });
+  }, [interactionOverrides, mergedMessages]);
+
+  function getCurrentReaction(messageId: string): ReactionValue {
+    const override = interactionOverrides[messageId];
+    if (override) return override.myReaction;
+    const msg = mergedMessages.find((m) => m.id === messageId);
+    return msg?.interactions?.myReaction ?? 'none';
+  }
+
+  function applyReactionLocal(
+    messageId: string,
+    next: ReactionValue,
+    base?: UiMessageV1['interactions']
+  ) {
+    const cur = base ?? mergedMessages.find((m) => m.id === messageId)?.interactions;
+    if (!cur) {
+      setInteractionOverrides((prev) => ({
+        ...prev,
+        [messageId]: { reactions: { up: 0, down: 0 }, feedbackCount: 0, myReaction: next },
+      }));
+      return;
+    }
+
+    const prevVal = cur.myReaction ?? 'none';
+    const reactions = { ...cur.reactions };
+    if (prevVal === 'up') reactions.up = Math.max(0, reactions.up - 1);
+    if (prevVal === 'down') reactions.down = Math.max(0, reactions.down - 1);
+    if (next === 'up') reactions.up += 1;
+    if (next === 'down') reactions.down += 1;
+
+    setInteractionOverrides((prev) => ({
+      ...prev,
+      [messageId]: { ...cur, reactions, myReaction: next },
+    }));
+  }
+
+  async function setReaction(messageId: string, value: ReactionValue) {
+    if (!conversationId) return;
+
+    const current = mergedMessages.find((m) => m.id === messageId);
+    const prev = getCurrentReaction(messageId);
+    const next = prev === value ? 'none' : value;
+
+    // Safer strategy: pending UX is handled in UI; here we only apply local state after ack.
+    const eventId = makeEventId('evt');
+    const clientTsMs = Date.now();
+
+    const llmCallId = current?.llmCallId ?? null;
+    const traceId = current?.traceId ?? null;
+
+    // Prefer LiveKit (lk.ui.events ↔ lk.ui.acks). If room is not connected, fall back to HTTP.
+    if (room?.state === 'connected') {
+      const res = await sendMessageInteractionEvent(
+        {
+          name: 'msg.reaction.set',
+          args: {
+            messageId,
+            eventId,
+            value: next,
+            clientTsMs,
+            ...(llmCallId ? { llmCallId } : {}),
+            ...(traceId ? { traceId } : {}),
+          },
+        },
+        { timeoutMs: 1200, maxRetries: 5 }
+      );
+      if (!res.ok) throw res.error;
+      applyReactionLocal(messageId, next);
+      return;
+    }
+
+    const httpRes = await fetch(
+      `/api/conversations/${conversationId}/messages/${messageId}/reaction`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: next, event_id: eventId, client_ts_ms: clientTsMs }),
+      }
+    );
+    const data = await httpRes.json().catch(() => ({}));
+    if (!httpRes.ok || data?.ok === false) {
+      throw new Error(data?.detail?.error || data?.detail?.error_code || 'reaction failed');
+    }
+    const normalized = normalizeInteractions(data?.interactions);
+    if (normalized) setInteractionOverrides((prevMap) => ({ ...prevMap, [messageId]: normalized }));
+  }
+
+  async function createFeedback(
+    messageId: string,
+    reasonCode: string,
+    text?: string
+  ) {
+    if (!conversationId) return;
+    const eventId = makeEventId('evt');
+
+    if (room?.state === 'connected') {
+      const res = await sendMessageInteractionEvent(
+        {
+          name: 'msg.feedback.create',
+          args: {
+            messageId,
+            eventId,
+            reason_code: reasonCode,
+            ...(text ? { text } : {}),
+            clientTsMs: Date.now(),
+          },
+        },
+        { timeoutMs: 1200, maxRetries: 5 }
+      );
+      if (!res.ok) throw res.error;
+
+      // Locally bump feedback count if present
+      const cur = mergedMessages.find((m) => m.id === messageId)?.interactions;
+      if (cur) {
+        setInteractionOverrides((prev) => ({
+          ...prev,
+          [messageId]: { ...cur, feedbackCount: (cur.feedbackCount ?? 0) + 1 },
+        }));
+      }
+      return;
+    }
+
+    const httpRes = await fetch(
+      `/api/conversations/${conversationId}/messages/${messageId}/feedback`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason_code: reasonCode, text: text ?? null, event_id: eventId }),
+      }
+    );
+    const data = await httpRes.json().catch(() => ({}));
+    if (!httpRes.ok || data?.ok === false) {
+      throw new Error(data?.detail?.error || data?.detail?.error_code || 'feedback failed');
+    }
+  }
+
   // 发送消息：生成本地 pending，并通过 LiveKit 发送 user_input@1
   async function send(message: string) {
     const now = Date.now();
@@ -438,9 +626,31 @@ export default function useConversationMessagesV1(conversationId?: string | null
   }
 
   return {
-    messages: mergedMessages,
+    messages: messagesWithOverrides,
     send,
+    setReaction,
+    createFeedback,
   };
 }
 
-
+function normalizeInteractions(
+  interactions:
+    | {
+        reactions?: { up?: number; down?: number };
+        feedback_count?: number;
+        my_reaction?: 'up' | 'down' | 'none' | null;
+      }
+    | undefined
+    | null
+): UiMessageV1['interactions'] | null {
+  if (!interactions) return null;
+  const up = Number(interactions.reactions?.up ?? 0) || 0;
+  const down = Number(interactions.reactions?.down ?? 0) || 0;
+  const my = interactions.my_reaction ?? 'none';
+  const feedbackCount = Number(interactions.feedback_count ?? 0) || 0;
+  return {
+    reactions: { up, down },
+    feedbackCount,
+    myReaction: (my === 'up' || my === 'down' || my === 'none' ? my : 'none') as ReactionValue,
+  };
+}

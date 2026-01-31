@@ -70,7 +70,9 @@ class UIBlocksRuntimeStore {
   }
 
   getCalls() {
-    return Array.from(this.callsById.values()).sort((a, b) => (a.updatedAt ?? 0) - (b.updatedAt ?? 0));
+    return Array.from(this.callsById.values()).sort(
+      (a, b) => (a.updatedAt ?? 0) - (b.updatedAt ?? 0)
+    );
   }
 
   subscribeCalls(fn: Listener<RuntimeCallState[]>) {
@@ -114,4 +116,3 @@ class UIBlocksRuntimeStore {
 }
 
 export const UIBlocksRuntime = new UIBlocksRuntimeStore();
-

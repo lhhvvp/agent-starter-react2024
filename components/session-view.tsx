@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { RoomEvent } from 'livekit-client';
 import { type AgentState, useRoomContext, useVoiceAssistant } from '@livekit/components-react';
 import { toastAlert } from '@/components/alert-toast';
 import { CanvasPane } from '@/components/canvas-pane';
@@ -25,6 +26,7 @@ interface SessionViewProps {
   disabled: boolean;
   sessionStarted: boolean;
   conversationId?: string | null;
+  initialMessage?: string | null;
 }
 
 export const SessionView = ({
@@ -32,12 +34,15 @@ export const SessionView = ({
   disabled,
   sessionStarted,
   conversationId,
+  initialMessage,
   ref,
 }: React.ComponentProps<'div'> & SessionViewProps) => {
   const { state: agentState } = useVoiceAssistant();
-  const [chatOpen, setChatOpen] = useState(false);
-  const { messages, send } = useConversationMessagesV1(conversationId);
+  const [chatOpen, setChatOpen] = useState(true);
+  const { messages, send, setReaction, createFeedback } = useConversationMessagesV1(conversationId);
   const room = useRoomContext();
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
+  const [roomConnected, setRoomConnected] = useState(room.state === 'connected');
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [activeArtifact, setActiveArtifact] = useState<{ id: string; projectId?: string | null } | null>(null);
@@ -50,6 +55,40 @@ export const SessionView = ({
   async function handleSendMessage(message: string) {
     await send(message);
   }
+
+  useEffect(() => {
+    const onConnected = () => setRoomConnected(true);
+    const onDisconnected = () => setRoomConnected(false);
+    // Sync initial value in case the component mounted after connect.
+    setRoomConnected(room.state === 'connected');
+    room.on(RoomEvent.Connected, onConnected);
+    room.on(RoomEvent.Disconnected, onDisconnected);
+    return () => {
+      room.off(RoomEvent.Connected, onConnected);
+      room.off(RoomEvent.Disconnected, onDisconnected);
+    };
+  }, [room]);
+
+  // Send a one-time "starter" message when the room is connected (public/ticket entry).
+  useEffect(() => {
+    if (!sessionStarted) {
+      setInitialMessageSent(false);
+      return;
+    }
+    if (initialMessageSent) return;
+    const msg = initialMessage?.trim();
+    if (!msg) return;
+    if (!roomConnected) return;
+
+    void send(msg)
+      .then(() => setInitialMessageSent(true))
+      .catch((e: any) => {
+        toastAlert({
+          title: '发送失败',
+          description: e?.message || '请稍后重试',
+        });
+      });
+  }, [initialMessage, initialMessageSent, roomConnected, send, sessionStarted]);
 
   useEffect(() => {
     if (sessionStarted) {
@@ -103,8 +142,10 @@ export const SessionView = ({
     const body = document.body;
     const paneOpen = canvasOpen || workspaceOpen;
     if (paneOpen) {
-      const value = `${(rightSplit * 100).toFixed(2)}vw`;
-      body.style.setProperty('--canvas-right-width', value);
+      const rect = layoutRef.current?.getBoundingClientRect();
+      const widthPx = rect?.width ?? window.innerWidth;
+      const rightWidthPx = Math.max(0, Math.round(widthPx * rightSplit));
+      body.style.setProperty('--canvas-right-width', `${rightWidthPx}px`);
       try {
         window.localStorage.setItem('canvasRightSplit', String(rightSplit));
       } catch {}
@@ -193,11 +234,11 @@ export const SessionView = ({
   const timelineLoading = status === 'idle' || status === 'loading';
 
   return (
-    // 整个 SessionView 占满视口高度，页面本身不再滚动，只在内部滚动
+    // 整个 SessionView 占满可用高度（由外层 AppShell 控制），页面本身不再滚动，只在内部滚动
     <main
       ref={ref}
       inert={disabled}
-      className={cn('h-svh', !chatOpen && 'overflow-hidden')}
+      className={cn('h-full', !chatOpen && 'overflow-hidden')}
     >
       {/* 内部容器固定填满 main，高度不再额外增加 padding，避免把底部 chatbox 推出视口 */}
       <div className="mx-auto h-full w-full">
@@ -225,6 +266,8 @@ export const SessionView = ({
               chatOpen={chatOpen}
               setChatOpen={setChatOpen}
               onSendMessage={handleSendMessage}
+              onSetReaction={setReaction}
+              onCreateFeedback={createFeedback}
               onToggleCanvas={() => {
                 setCanvasOpen((v) => {
                   const next = !v;
@@ -240,7 +283,7 @@ export const SessionView = ({
                 setWorkspaceOpen(true);
                 setCanvasOpen(false);
               }}
-              anchor="container"
+              anchor="viewport"
             />
           </div>
 
@@ -269,9 +312,8 @@ export const SessionView = ({
 
           {/* 右列：Workspace / Canvas + Timeline（桌面端） */}
           {(canvasOpen || workspaceOpen) && (
-            // 右侧 workspace / canvas 区在桌面端需要避开顶部固定 header，因此加上 md:pt-20
-            // 同时通过 min-h-0 确保内部容器可以正确收缩并启用滚动
-            <div className="hidden md:flex md:min-h-0 md:flex-col md:pt-20 md:pr-3 md:pl-3">
+            // 右侧 workspace / canvas 区通过 min-h-0 确保内部容器可以正确收缩并启用滚动
+            <div className="hidden md:flex md:min-h-0 md:flex-col md:pr-3 md:pl-3">
               <div className={cn('flex-1 min-h-0 border-b', workspaceOpen && !canvasOpen && 'overflow-y-auto')}>
                 {canvasOpen && !workspaceOpen && <CanvasPane className="h-full" />}
                 {workspaceOpen && !canvasOpen && (

@@ -22,6 +22,8 @@ export async function GET() {
       return jsonError(401, 'UNAUTHORIZED', 'not logged in');
     }
 
+    const headers = new Headers({ 'Cache-Control': 'no-store' });
+
     let upstreamRes: Response;
     try {
       upstreamRes = await fetch(`${USER_MGMT_BASE_URL}/api/v1/users/me`, {
@@ -41,8 +43,6 @@ export async function GET() {
         { status: 502, headers },
       );
     }
-
-    const headers = new Headers({ 'Cache-Control': 'no-store' });
 
     if (!upstreamRes.ok) {
       const status = upstreamRes.status;

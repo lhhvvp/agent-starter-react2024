@@ -1,25 +1,21 @@
 import { useMemo } from 'react';
 import {
   type ReceivedChatMessage,
-  type TextStreamData,
   useChat,
   useRoomContext,
-  useTranscriptions,
 } from '@livekit/components-react';
-import { transcriptionToChatMessage } from '@/lib/utils';
 
 export default function useChatAndTranscription() {
-  const transcriptions: TextStreamData[] = useTranscriptions();
   const chat = useChat();
-  const room = useRoomContext();
+  useRoomContext();
 
-  const mergedTranscriptions = useMemo(() => {
-    const merged: Array<ReceivedChatMessage> = [
-      ...transcriptions.map((transcription) => transcriptionToChatMessage(transcription, room)),
-      ...chat.chatMessages,
-    ];
-    return merged.sort((a, b) => a.timestamp - b.timestamp);
-  }, [transcriptions, chat.chatMessages, room]);
+  // NOTE: We intentionally avoid useTranscriptions() here.
+  // In some dev environments (React StrictMode / Fast Refresh), LiveKit will throw:
+  // "A text stream handler for topic \"lk.transcription\" has already been set."
+  // Chat messages still work without transcription aggregation.
+  const mergedTranscriptions: Array<ReceivedChatMessage> = useMemo(() => {
+    return [...chat.chatMessages].sort((a, b) => a.timestamp - b.timestamp);
+  }, [chat.chatMessages]);
 
   return { messages: mergedTranscriptions, send: chat.send };
 }

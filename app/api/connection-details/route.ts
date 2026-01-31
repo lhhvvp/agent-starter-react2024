@@ -76,7 +76,16 @@ export type ConnectionDetails = {
   org_id?: string;
 };
 
-export async function GET() {
+function sanitizeDisplayName(input: string | null) {
+  if (!input) return null;
+  const trimmed = input.trim().replace(/[\r\n\t]+/g, ' ');
+  if (!trimmed) return null;
+  // Keep it short and safe for UI; avoid collecting PII here.
+  const maxLen = 24;
+  return trimmed.length > maxLen ? trimmed.slice(0, maxLen) : trimmed;
+}
+
+export async function GET(req: Request) {
   try {
     if (LIVEKIT_URL === undefined) {
       throw new Error('LIVEKIT_URL is not defined');
@@ -89,8 +98,10 @@ export async function GET() {
     }
 
     // Generate participant token
-    const participantName = 'user';
-    const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
+    const url = new URL(req.url);
+    const displayName = sanitizeDisplayName(url.searchParams.get('display_name'));
+    const participantName = displayName ?? 'guest';
+    const participantIdentity = `voice_assistant_guest_${Math.floor(Math.random() * 10_000)}`;
     const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },

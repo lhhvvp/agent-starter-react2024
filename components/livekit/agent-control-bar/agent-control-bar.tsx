@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useCallback } from 'react';
 import { Track } from 'livekit-client';
-import { BarVisualizer, useRemoteParticipants } from '@livekit/components-react';
+import { BarVisualizer } from '@livekit/components-react';
 import { ChatTextIcon, PhoneDisconnectIcon } from '@phosphor-icons/react/dist/ssr';
 import { ChatInput } from '@/components/livekit/chat/chat-input';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,10 @@ import { UseAgentControlBarProps, useAgentControlBar } from './hooks/use-agent-c
 export interface AgentControlBarProps
   extends React.HTMLAttributes<HTMLDivElement>,
     UseAgentControlBarProps {
-  capabilities: Pick<AppConfig, 'supportsChatInput' | 'supportsVideoInput' | 'supportsScreenShare'>;
+  capabilities: Pick<
+    AppConfig,
+    'supportsChatInput' | 'supportsAudioInput' | 'supportsVideoInput' | 'supportsScreenShare'
+  >;
   onChatOpenChange?: (open: boolean) => void;
   /**
    * Optional controlled prop for chat open state. If provided, the control bar
@@ -54,7 +57,6 @@ export function AgentControlBar({
   surface,
   ...props
 }: AgentControlBarProps) {
-  const participants = useRemoteParticipants();
   // Support controlled/uncontrolled chatOpen
   const [uncontrolledChatOpen, setUncontrolledChatOpen] = React.useState(false);
   const isChatOpenControlled = controlledChatOpen !== undefined;
@@ -65,8 +67,7 @@ export function AgentControlBar({
   };
   const [isSendingMessage, setIsSendingMessage] = React.useState(false);
 
-  const isAgentAvailable = participants.some((p) => p.isAgent);
-  const isInputDisabled = !chatOpen || !isAgentAvailable || isSendingMessage;
+  const isInputDisabled = !chatOpen || isSendingMessage;
 
   const [isDisconnecting, setIsDisconnecting] = React.useState(false);
 
@@ -152,8 +153,9 @@ export function AgentControlBar({
                 variant="primary"
                 source={Track.Source.Microphone}
                 pressed={microphoneToggle.enabled}
-                disabled={microphoneToggle.pending}
+                disabled={microphoneToggle.pending || !capabilities.supportsAudioInput}
                 onPressedChange={microphoneToggle.toggle}
+                pending={microphoneToggle.pending}
                 className="peer/track group/track relative w-auto pr-3 pl-3 md:rounded-r-none md:border-r-0 md:pr-2"
               >
                 <BarVisualizer
@@ -177,6 +179,7 @@ export function AgentControlBar({
                 kind="audioinput"
                 onMediaDeviceError={onMicrophoneDeviceSelectError}
                 onActiveDeviceChange={handleAudioDeviceChange}
+                disabled={!capabilities.supportsAudioInput}
                 className={cn([
                   'pl-2',
                   'peer-data-[state=off]/track:text-destructive-foreground',
@@ -236,7 +239,7 @@ export function AgentControlBar({
               aria-label="Toggle chat"
               pressed={chatOpen}
               onPressedChange={setChatOpen}
-              disabled={!isAgentAvailable || !capabilities.supportsChatInput}
+              disabled={!capabilities.supportsChatInput}
               className="aspect-square h-full"
             >
               <ChatTextIcon weight="bold" />

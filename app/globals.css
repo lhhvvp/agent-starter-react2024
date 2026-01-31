@@ -32,6 +32,7 @@
   --separatorAccent: #b3ccff;
 
   --radius: 0.625rem;
+  --app-topbar-height: 56px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -247,6 +248,164 @@
     }
     100% {
       background-position: 250% 0;
+    }
+  }
+
+  /* Login page animated background (lightweight, no JS) */
+  .login-bg-base {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(255, 64, 129, 0.22), rgba(0, 0, 0, 0) 55%),
+      radial-gradient(circle at 82% 28%, rgba(33, 150, 243, 0.18), rgba(0, 0, 0, 0) 58%),
+      radial-gradient(circle at 65% 82%, rgba(0, 200, 140, 0.14), rgba(0, 0, 0, 0) 60%),
+      linear-gradient(180deg, #fbfbfc 0%, #f3f4f6 100%);
+  }
+
+  .dark .login-bg-base {
+    background:
+      radial-gradient(circle at 20% 22%, rgba(255, 64, 129, 0.16), rgba(0, 0, 0, 0) 55%),
+      radial-gradient(circle at 80% 28%, rgba(33, 150, 243, 0.14), rgba(0, 0, 0, 0) 58%),
+      radial-gradient(circle at 65% 82%, rgba(0, 200, 140, 0.12), rgba(0, 0, 0, 0) 60%),
+      linear-gradient(180deg, #070709 0%, #0b0b0c 100%);
+  }
+
+  .login-bg-blobs {
+    position: absolute;
+    inset: 0;
+    filter: blur(64px) saturate(1.8) contrast(1.1);
+    transform: translate3d(0, 0, 0);
+    will-change: filter;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-bg-blobs {
+      filter: blur(84px) saturate(1.15);
+    }
+  }
+
+  .login-bg-blob {
+    position: absolute;
+    inset: auto;
+    border-radius: 9999px;
+    opacity: 0.85;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    mix-blend-mode: multiply;
+    animation: login-blob-1 5s ease-in-out infinite alternate;
+  }
+
+  .dark .login-bg-blob {
+    opacity: 0.85;
+    mix-blend-mode: screen;
+  }
+
+  /* Light theme needs stronger contrast on near-white backgrounds */
+  .login-bg-root .login-bg-blob {
+    opacity: 0.9;
+    mix-blend-mode: multiply;
+  }
+
+  .login-bg-blob-1 {
+    top: -10rem;
+    left: 50%;
+    height: 22rem;
+    width: 46rem;
+    transform: translate3d(-50%, 0, 0);
+    background: radial-gradient(circle at 30% 30%, rgba(255, 0, 102, 0.7), rgba(255, 165, 0, 0.35) 42%, rgba(0, 0, 0, 0) 70%);
+    animation-name: login-blob-1;
+  }
+
+  .dark .login-bg-blob-1 {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 0, 102, 0.55), rgba(255, 165, 0, 0.28) 42%, rgba(0, 0, 0, 0) 70%);
+  }
+
+  .login-bg-blob-2 {
+    bottom: -14rem;
+    left: 30%;
+    height: 26rem;
+    width: 58rem;
+    transform: translate3d(-50%, 0, 0);
+    background: radial-gradient(circle at 40% 40%, rgba(0, 136, 255, 0.65), rgba(150, 80, 255, 0.32) 46%, rgba(0, 0, 0, 0) 72%);
+    animation-name: login-blob-2;
+    animation-duration: 6s;
+  }
+
+  .dark .login-bg-blob-2 {
+    background: radial-gradient(circle at 40% 40%, rgba(0, 136, 255, 0.5), rgba(150, 80, 255, 0.26) 46%, rgba(0, 0, 0, 0) 72%);
+  }
+
+  .login-bg-blob-3 {
+    top: 25%;
+    right: -16rem;
+    height: 30rem;
+    width: 30rem;
+    background: radial-gradient(circle at 40% 40%, rgba(0, 220, 160, 0.55), rgba(0, 255, 255, 0.26) 44%, rgba(0, 0, 0, 0) 72%);
+    animation-name: login-blob-3;
+    animation-duration: 7s;
+  }
+
+  .dark .login-bg-blob-3 {
+    background: radial-gradient(circle at 40% 40%, rgba(0, 220, 160, 0.42), rgba(0, 255, 255, 0.22) 44%, rgba(0, 0, 0, 0) 72%);
+  }
+
+  .login-bg-noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.08;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .dark .login-bg-noise {
+    opacity: 0.12;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-bg-blob {
+      animation-play-state: paused;
+    }
+  }
+
+  :root[data-force-motion='1'] .login-bg-blob {
+    animation-play-state: running;
+  }
+
+  /* Debug mode: /login?debugBg=1 */
+  :root[data-login-bg-debug='1'] .login-bg-blob {
+    outline: 2px dashed rgba(255, 0, 0, 0.5);
+    opacity: 1 !important;
+  }
+  :root[data-login-bg-debug='1'] .login-bg-blobs {
+    outline: 2px dashed rgba(0, 150, 255, 0.5);
+  }
+
+  @keyframes login-blob-1 {
+    0% {
+      transform: translate3d(-50%, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(-44%, 3.5rem, 0) scale(1.12);
+    }
+  }
+
+  @keyframes login-blob-2 {
+    0% {
+      transform: translate3d(-50%, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(-58%, -4rem, 0) scale(1.12);
+    }
+  }
+
+  @keyframes login-blob-3 {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(-4rem, 3rem, 0) scale(1.16);
     }
   }
 }

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="140" viewBox="0 0 720 140" fill="none">
+  <defs>
+    <linearGradient id="yl_blue_dark" x1="0" y1="0" x2="180" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6EA2FF"/>
+      <stop offset="1" stop-color="#2B8BFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left mark -->
+  <g transform="translate(14 18)">
+    <text
+      x="0"
+      y="58"
+      font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, PingFang SC, Microsoft YaHei, sans-serif"
+      font-size="64"
+      font-weight="900"
+      letter-spacing="1"
+      fill="url(#yl_blue_dark)"
+    >
+      CHS
+    </text>
+    <text
+      x="2"
+      y="92"
+      font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, PingFang SC, Microsoft YaHei, sans-serif"
+      font-size="18"
+      font-weight="600"
+      fill="#cbd5e1"
+    >
+      中国医疗保障
+    </text>
+  </g>
+
+  <!-- Right wordmark -->
+  <g transform="translate(240 18)">
+    <text
+      x="0"
+      y="58"
+      font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, PingFang SC, Microsoft YaHei, sans-serif"
+      font-size="52"
+      font-weight="800"
+      fill="#ff5a52"
+    >
+      榆林市医疗保障局
+    </text>
+    <text
+      x="2"
+      y="92"
+      font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, sans-serif"
+      font-size="16"
+      font-weight="600"
+      fill="#ff5a52"
+    >
+      Yulin Municipal Healthcare Security Administration
+    </text>
+  </g>
+</svg>

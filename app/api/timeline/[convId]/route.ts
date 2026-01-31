@@ -12,9 +12,9 @@ function getTimelineBaseUrl() {
 
 export async function GET(
   request: Request,
-  context: { params: { convId: string } }
+  context: { params: Promise<{ convId: string }> }
 ) {
-  const { convId } = context.params;
+  const { convId } = await context.params;
 
   if (!convId) {
     return NextResponse.json({ error: 'convId is required' }, { status: 400 });
@@ -55,6 +55,5 @@ export async function GET(
     );
   }
 }
-
 
 

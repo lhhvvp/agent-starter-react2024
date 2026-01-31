@@ -9,5 +9,3 @@ export default async function TicketsPage() {
   // tickets 路由保留原有 ticket 模式行为，不做登录强制校验
   return <App appConfig={appConfig} mode="ticket" />;
 }
-
-

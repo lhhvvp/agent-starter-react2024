@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
       return jsonError(400, 'INVALID_REQUEST', 'token required');
     }
 
+    const headers = new Headers({ 'Cache-Control': 'no-store' });
+
     let upstreamRes: Response;
     try {
       upstreamRes = await fetch(`${USER_MGMT_BASE_URL}/api/v1/auth/magic-link/consume`, {
@@ -45,8 +47,6 @@ export async function POST(req: NextRequest) {
         { status: 502, headers },
       );
     }
-
-    const headers = new Headers({ 'Cache-Control': 'no-store' });
 
     if (!upstreamRes.ok) {
       const status = upstreamRes.status;

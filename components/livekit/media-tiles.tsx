@@ -123,12 +123,21 @@ export function MediaTiles({ chatOpen, anchor = 'viewport', canvasOpen }: MediaT
 
   const isAvatar = agentVideoTrack !== undefined;
 
-  // When canvas is open on desktop, restrict overlay to the resizable left column
-  const rightInsetClass = canvasOpen ? 'right-canvas-offset' : 'right-0';
-  const basePos = 'left-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40 transition-all duration-300 ease-out';
-  const positionClass = anchor === 'viewport'
-    ? cn('fixed', basePos, rightInsetClass)
-    : cn('absolute', basePos, rightInsetClass);
+  const basePos =
+    anchor === 'viewport'
+      ? 'left-0 md:left-[var(--app-sidebar-width,0px)] top-[calc(var(--app-topbar-height,56px)+0.5rem)] bottom-32 z-50 md:top-[calc(var(--app-topbar-height,56px)+0.75rem)] md:bottom-40 transition-all duration-300 ease-out'
+      : 'left-0 top-8 bottom-32 z-50 md:top-12 md:bottom-40 transition-all duration-300 ease-out';
+
+  // When canvas is open on desktop (split view), restrict overlay to the left chat column.
+  const rightOffsetClass =
+    anchor === 'viewport' && canvasOpen
+      ? 'right-0 md:right-[var(--canvas-right-width,0px)]'
+      : 'right-0';
+
+  const positionClass =
+    anchor === 'viewport'
+      ? cn('fixed', basePos, rightOffsetClass)
+      : cn('absolute', basePos, rightOffsetClass);
 
   return (
     <div className={cn('pointer-events-none', positionClass)}>

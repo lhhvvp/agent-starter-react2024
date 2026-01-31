@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Room } from 'livekit-client';
 import { RoomContext } from '@livekit/components-react';
 import { toastAlert } from '@/components/alert-toast';
+import { ClientLogProvider } from '@/components/client-log/ClientLogProvider';
 import useConnectionDetails from '@/hooks/useConnectionDetails';
 import { cn } from '@/lib/utils';
 
@@ -14,15 +15,40 @@ export default function ComponentsLayout({ children }: { children: React.ReactNo
 
   const pathname = usePathname();
   const room = React.useMemo(() => new Room(), []);
+  const insecureContextToastShownRef = React.useRef(false);
 
   React.useEffect(() => {
     if (room.state === 'disconnected' && connectionDetails) {
-      Promise.all([
-        room.localParticipant.setMicrophoneEnabled(true, undefined, {
-          preConnectBuffer: true,
-        }),
-        room.connect(connectionDetails.serverUrl, connectionDetails.participantToken),
-      ]).catch((error) => {
+      const isSecureContext = typeof window !== 'undefined' && window.isSecureContext;
+      if (!isSecureContext && !insecureContextToastShownRef.current) {
+        insecureContextToastShownRef.current = true;
+        toastAlert({
+          title: '浏览器安全限制',
+          description:
+            '麦克风/摄像头仅在 HTTPS 或 localhost 下可用。当前为非安全上下文；如需在局域网 IP 调试，请使用 HTTPS（`pnpm dev -- --experimental-https`）或在 Chrome 中将该地址加入 “Unsafely treat insecure origin as secure”。',
+        });
+      }
+
+      const connectToRoom = async () => {
+        const connectPromise = room.connect(
+          connectionDetails.serverUrl,
+          connectionDetails.participantToken
+        );
+
+        if (!isSecureContext) {
+          await connectPromise;
+          return;
+        }
+
+        await Promise.all([
+          room.localParticipant.setMicrophoneEnabled(true, undefined, {
+            preConnectBuffer: true,
+          }),
+          connectPromise,
+        ]);
+      };
+
+      void connectToRoom().catch((error) => {
         toastAlert({
           title: 'There was an error connecting to the agent',
           description: `${error.name}: ${error.message}`,
@@ -67,7 +93,9 @@ export default function ComponentsLayout({ children }: { children: React.ReactNo
       </div>
 
       <RoomContext.Provider value={room}>
-        <main className="flex w-full flex-1 flex-col items-stretch gap-8">{children}</main>
+        <ClientLogProvider room={room} roomName={connectionDetails?.roomName ?? null}>
+          <main className="flex w-full flex-1 flex-col items-stretch gap-8">{children}</main>
+        </ClientLogProvider>
       </RoomContext.Provider>
     </div>
   );

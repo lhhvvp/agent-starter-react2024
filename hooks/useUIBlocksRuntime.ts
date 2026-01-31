@@ -7,10 +7,26 @@ export function useUIBlocksRuntime() {
   const [calls, setCalls] = React.useState<RuntimeCallState[]>(() => UIBlocksRuntime.getCalls());
   const [snippets, setSnippets] = React.useState<UIPayload[]>(() => UIBlocksRuntime.getSnippets());
 
-  React.useEffect(() => UIBlocksRuntime.subscribeBlocks(setBlocks), []);
-  React.useEffect(() => UIBlocksRuntime.subscribeCalls(setCalls), []);
-  React.useEffect(() => UIBlocksRuntime.subscribeSnippets(setSnippets), []);
+  React.useEffect(() => {
+    const unsubscribe = UIBlocksRuntime.subscribeBlocks(setBlocks);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const unsubscribe = UIBlocksRuntime.subscribeCalls(setCalls);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const unsubscribe = UIBlocksRuntime.subscribeSnippets(setSnippets);
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   return { blocks, calls, snippets } as const;
 }
-

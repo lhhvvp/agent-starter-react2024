@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -27,7 +27,9 @@ export default function ConsumePage() {
         if (!res.ok) {
           const msg = data?.error?.message || '消费失败';
           const code = data?.error?.code ? `[${data.error.code}] ` : '';
-          const dbg = data?.debug?.upstream_code ? `（upstream_code: ${data.debug.upstream_code}）` : '';
+          const dbg = data?.debug?.upstream_code
+            ? `（upstream_code: ${data.debug.upstream_code}）`
+            : '';
           throw new Error(`${code}${msg}${dbg}`);
         }
         if (!aborted) {
@@ -45,7 +47,7 @@ export default function ConsumePage() {
   }, [router, token]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6">
+    <div className="flex min-h-screen w-full items-center justify-center p-6">
       <div className="w-full max-w-md space-y-4 text-center">
         {!error ? (
           <>

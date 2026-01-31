@@ -7,9 +7,10 @@ import { AgentControlBar } from '@/components/livekit/agent-control-bar/agent-co
 import { ChatEntry } from '@/components/livekit/chat/chat-entry';
 import { ChatMessageView } from '@/components/livekit/chat/chat-message-view';
 import { MediaTiles } from '@/components/livekit/media-tiles';
+import { useAgentCapabilities } from '@/hooks/useAgentCapabilities';
 import type { AppConfig } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import type { UiBlockV1, UiMessageV1 } from '@/hooks/useConversationMessagesV1';
+import type { ReactionValue, UiBlockV1, UiMessageV1 } from '@/hooks/useConversationMessagesV1';
 
 interface ConversationPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   appConfig: AppConfig;
@@ -18,6 +19,8 @@ interface ConversationPaneProps extends React.HTMLAttributes<HTMLDivElement> {
   chatOpen: boolean;
   setChatOpen: (open: boolean) => void;
   onSendMessage: (message: string) => Promise<void>;
+  onSetReaction?: (messageId: string, value: ReactionValue) => Promise<void>;
+  onCreateFeedback?: (messageId: string, reasonCode: string, text?: string) => Promise<void>;
   onToggleCanvas?: () => void;
   canvasOpen?: boolean;
   anchor?: 'viewport' | 'container';
@@ -28,7 +31,15 @@ interface ConversationPaneProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 // 轻量适配器：将 UiMessageV1 转换为 ChatEntry 需要的 ReceivedChatMessage 结构
-function UiChatEntry({ msg }: { msg: UiMessageV1 }) {
+function UiChatEntry({
+  msg,
+  onSetReaction,
+  onCreateFeedback,
+}: {
+  msg: UiMessageV1;
+  onSetReaction?: (messageId: string, value: ReactionValue) => Promise<void>;
+  onCreateFeedback?: (messageId: string, reasonCode: string, text?: string) => Promise<void>;
+}) {
   const room = useRoomContext();
 
   let from: ReceivedChatMessage['from'] = undefined;
@@ -49,7 +60,22 @@ function UiChatEntry({ msg }: { msg: UiMessageV1 }) {
     from,
   };
 
-  return <ChatEntry hideName entry={entry} />;
+  return (
+    <ChatEntry
+      hideName
+      entry={entry}
+      conversationId={msg.conversationId}
+      interactions={msg.interactions}
+      llmCallId={msg.llmCallId ?? undefined}
+      traceId={msg.traceId ?? undefined}
+      onSetReaction={async (value) => {
+        await onSetReaction?.(msg.id, value);
+      }}
+      onCreateFeedback={async (reasonCode, text) => {
+        await onCreateFeedback?.(msg.id, reasonCode, text);
+      }}
+    />
+  );
 }
 
 function SimpleArtifactChip({
@@ -93,6 +119,8 @@ export function ConversationPane({
   chatOpen,
   setChatOpen,
   onSendMessage,
+  onSetReaction,
+  onCreateFeedback,
   onToggleCanvas,
   canvasOpen,
   anchor = 'viewport',
@@ -102,17 +130,21 @@ export function ConversationPane({
   className,
   ...props
 }: ConversationPaneProps) {
-  const { supportsChatInput, supportsVideoInput, supportsScreenShare } = appConfig;
+  const { supportsChatInput, supportsAudioInput, supportsVideoInput, supportsScreenShare } =
+    appConfig;
+  const agentCaps = useAgentCapabilities();
+
   const capabilities = {
-    supportsChatInput,
-    supportsVideoInput,
-    supportsScreenShare,
+    supportsChatInput: supportsChatInput && (agentCaps.supportsChatInput ?? true),
+    supportsAudioInput: supportsAudioInput && (agentCaps.supportsAudioInput ?? true),
+    supportsVideoInput: supportsVideoInput && (agentCaps.supportsVideoInput ?? true),
+    supportsScreenShare: supportsScreenShare && (agentCaps.supportsScreenShare ?? true),
   };
 
   return (
     <div
       data-scroll-container
-      className={cn('relative h-svh overflow-y-auto', className)}
+      className={cn('relative h-full overflow-y-auto', className)}
       {...props}
     >
       {/* Chat timeline */}
@@ -133,7 +165,11 @@ export function ConversationPane({
                 transition={{ duration: 0.5, ease: 'easeOut' }}
               >
                 <div className="space-y-1">
-                  <UiChatEntry msg={message} />
+                  <UiChatEntry
+                    msg={message}
+                    onSetReaction={onSetReaction}
+                    onCreateFeedback={onCreateFeedback}
+                  />
                   {message.blocks?.map((block, idx) =>
                     block.kind === 'artifact' ? (
                       <SimpleArtifactChip
@@ -158,7 +194,7 @@ export function ConversationPane({
       {/* Bottom control bar */}
       <div
         className={cn(
-          'bg-background sticky bottom-0 left-0 right-0 z-20 px-3 pt-2 pb-3 md:px-12 md:pb-12'
+          'bg-background sticky bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-3 md:px-12 md:pb-12'
         )}
       >
         <motion.div

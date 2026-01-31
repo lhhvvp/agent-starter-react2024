@@ -11,9 +11,9 @@ function getBackendBaseUrl() {
 
 export async function GET(
   request: Request,
-  context: { params: { convId: string } }
+  context: { params: Promise<{ convId: string }> }
 ) {
-  const { convId } = context.params;
+  const { convId } = await context.params;
 
   if (!convId) {
     return NextResponse.json({ error: 'convId is required' }, { status: 400 });
@@ -33,7 +33,12 @@ export async function GET(
 
     const upstreamRes = await fetch(url.toString(), {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(request.headers.get('authorization')
+          ? { Authorization: request.headers.get('authorization')! }
+          : {}),
+      },
       cache: 'no-store',
     });
 
@@ -60,7 +65,5 @@ export async function GET(
     );
   }
 }
-
-
 
 

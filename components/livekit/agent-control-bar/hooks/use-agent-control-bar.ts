@@ -101,33 +101,57 @@ export function useAgentControlBar(props: UseAgentControlBarProps = {}): UseAgen
 
   const handleToggleCamera = React.useCallback(
     async (enabled?: boolean) => {
-      if (screenShareToggle.enabled) {
-        screenShareToggle.toggle(false);
+      try {
+        if (screenShareToggle.enabled) {
+          await screenShareToggle.toggle(false);
+        }
+        await cameraToggle.toggle(enabled);
+        // persist video input enabled preference
+        saveVideoInputEnabled(!cameraToggle.enabled);
+      } catch (error) {
+        props.onDeviceError?.({ source: Track.Source.Camera, error: error as Error });
       }
-      await cameraToggle.toggle(enabled);
-      // persist video input enabled preference
-      saveVideoInputEnabled(!cameraToggle.enabled);
     },
-    [cameraToggle.enabled, screenShareToggle.enabled]
+    [
+      cameraToggle.enabled,
+      cameraToggle.toggle,
+      props.onDeviceError,
+      saveVideoInputEnabled,
+      screenShareToggle.enabled,
+      screenShareToggle.toggle,
+    ]
   );
 
   const handleToggleMicrophone = React.useCallback(
     async (enabled?: boolean) => {
-      await microphoneToggle.toggle(enabled);
-      // persist audio input enabled preference
-      saveAudioInputEnabled(!microphoneToggle.enabled);
+      try {
+        await microphoneToggle.toggle(enabled);
+        // persist audio input enabled preference
+        saveAudioInputEnabled(!microphoneToggle.enabled);
+      } catch (error) {
+        props.onDeviceError?.({ source: Track.Source.Microphone, error: error as Error });
+      }
     },
-    [microphoneToggle.enabled]
+    [microphoneToggle.enabled, microphoneToggle.toggle, props.onDeviceError, saveAudioInputEnabled]
   );
 
   const handleToggleScreenShare = React.useCallback(
     async (enabled?: boolean) => {
-      if (cameraToggle.enabled) {
-        cameraToggle.toggle(false);
+      try {
+        if (cameraToggle.enabled) {
+          await cameraToggle.toggle(false);
+        }
+        await screenShareToggle.toggle(enabled);
+      } catch (error) {
+        props.onDeviceError?.({ source: Track.Source.ScreenShare, error: error as Error });
       }
-      await screenShareToggle.toggle(enabled);
     },
-    [screenShareToggle.enabled, cameraToggle.enabled]
+    [
+      cameraToggle.enabled,
+      cameraToggle.toggle,
+      props.onDeviceError,
+      screenShareToggle.toggle,
+    ]
   );
 
   return {

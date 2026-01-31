@@ -1,23 +1,22 @@
+'use client';
+
 import * as React from 'react';
-import { useChat } from '@livekit/components-react';
 import type { UIEvent } from '@/lib/ui-blocks';
-import { LK_UI_EVENTS_TOPIC, LK_UI_BLOCKS_CONTENT_TYPE, LK_UI_BLOCKS_VERSION } from '@/lib/ui-blocks';
+import { useReliableUIEventSender } from '@/hooks/useReliableUIEventSender';
 
 export function useSendUIEvent() {
-  const { send } = useChat();
+  const { sendRaw, sendToolInvokeWithAck } = useReliableUIEventSender();
   return React.useCallback(
     async (event: UIEvent) => {
-      const msg = JSON.stringify(event);
-      const opts = {
-        topic: LK_UI_EVENTS_TOPIC,
-        attributes: {
-          'content-type': LK_UI_BLOCKS_CONTENT_TYPE,
-          version: LK_UI_BLOCKS_VERSION,
-        },
-      } as unknown as { topic?: string; attributes?: Record<string, string> };
-      await send(msg, opts as any);
+      // For HITL (tool.invoke), front-end must wait for ui.ack and retry idempotently.
+      if (event.name === 'tool.invoke') {
+        const res = await sendToolInvokeWithAck(event as any);
+        if (!res.ok) throw res.error;
+        return;
+      }
+
+      await sendRaw(event);
     },
-    [send]
+    [sendRaw, sendToolInvokeWithAck]
   );
 }
-

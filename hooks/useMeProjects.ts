@@ -19,6 +19,7 @@ export interface MeProjectSummary {
 interface UseMeProjectsOptions {
   orgId?: string | null;
   limit?: number;
+  enabled?: boolean;
 }
 
 interface UseMeProjectsResult {
@@ -28,7 +29,7 @@ interface UseMeProjectsResult {
 }
 
 export function useMeProjects(options?: UseMeProjectsOptions): UseMeProjectsResult {
-  const { orgId, limit } = options ?? {};
+  const { orgId, limit, enabled = true } = options ?? {};
   const [projects, setProjects] = useState<MeProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +38,12 @@ export function useMeProjects(options?: UseMeProjectsOptions): UseMeProjectsResu
     let cancelled = false;
 
     async function load() {
+      if (!enabled) {
+        setProjects([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -83,9 +90,8 @@ export function useMeProjects(options?: UseMeProjectsOptions): UseMeProjectsResu
     return () => {
       cancelled = true;
     };
-  }, [orgId, limit]);
+  }, [enabled, orgId, limit]);
 
   return { projects, loading, error };
 }
-
 

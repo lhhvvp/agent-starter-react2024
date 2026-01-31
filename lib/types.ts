@@ -13,6 +13,7 @@ export interface AppConfig {
   companyName: string;
 
   supportsChatInput: boolean;
+  supportsAudioInput: boolean;
   supportsVideoInput: boolean;
   supportsScreenShare: boolean;
   isPreConnectBufferEnabled: boolean;

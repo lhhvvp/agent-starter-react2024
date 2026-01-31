@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 const USER_MGMT_BASE_URL = process.env.USER_MGMT_BASE_URL;
 
@@ -10,11 +10,8 @@ function getBackendBaseUrl() {
   return USER_MGMT_BASE_URL.replace(/\/$/, '');
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: { artifactId: string } }
-) {
-  const { artifactId } = params;
+export async function GET(request: Request, context: { params: Promise<{ artifactId: string }> }) {
+  const { artifactId } = await context.params;
 
   if (!artifactId) {
     return NextResponse.json({ error: 'artifactId is required' }, { status: 400 });
@@ -111,16 +108,15 @@ export async function GET(
       },
     };
 
-    const history =
-      Array.isArray(historyRaw)
-        ? historyRaw.map((h: any, idx: number) => ({
-            id: String(h.project_run_id ?? h.id ?? `${artifactId}-hist-${idx}`),
-            artifactId: String(artifactId),
-            createdAt: String(h.occurred_at ?? ''),
-            summary: h.summary ?? h.phase ?? undefined,
-            actorLabel: h.actor_name ?? h.actor_id ?? undefined,
-          }))
-        : [];
+    const history = Array.isArray(historyRaw)
+      ? historyRaw.map((h: any, idx: number) => ({
+          id: String(h.project_run_id ?? h.id ?? `${artifactId}-hist-${idx}`),
+          artifactId: String(artifactId),
+          createdAt: String(h.occurred_at ?? ''),
+          summary: h.summary ?? h.phase ?? undefined,
+          actorLabel: h.actor_name ?? h.actor_id ?? undefined,
+        }))
+      : [];
 
     return NextResponse.json({ snapshot, history }, { status: 200 });
   } catch (error) {
@@ -129,4 +125,3 @@ export async function GET(
     return NextResponse.json({ error: 'Internal artifacts proxy error' }, { status: 500 });
   }
 }
-

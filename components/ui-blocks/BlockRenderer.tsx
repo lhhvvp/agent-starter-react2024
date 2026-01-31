@@ -179,7 +179,7 @@ function Actions({ b, msgId }: { b: UIActionsBlock; msgId?: string }) {
                 },
                 arguments: it.action.arguments ?? {},
               },
-            });
+            }).catch(() => {});
           }}
         >
           {it.label}
@@ -217,7 +217,7 @@ function ButtonBlock({ b, msgId }: { b: UIButtonBlock; msgId?: string }) {
               },
               arguments: b.action.arguments ?? {},
             },
-          });
+          }).catch(() => {});
         }}
       >
         {b.text}
@@ -254,7 +254,7 @@ function FormBlock({ b, msgId }: { b: UIFormBlock; msgId?: string }) {
         tool: { name: b.submit.action.name, argumentsSchemaRef: b.submit.action.argumentsSchemaRef, resultSchemaRef: b.submit.action.resultSchemaRef },
         arguments: values,
       },
-    });
+    }).catch(() => {});
   };
 
   return (
@@ -365,4 +365,3 @@ function renderInputField({
       );
   }
 }
-

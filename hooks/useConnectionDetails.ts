@@ -4,7 +4,7 @@ import { toastAlert } from '@/components/alert-toast';
 
 type RefreshOpts = { ticket?: string; profile?: { display_name?: string } };
 
-export default function useConnectionDetails() {
+export default function useConnectionDetails(options?: { autoFetch?: boolean }) {
   // Generate room connection details, including:
   //   - A random Room name
   //   - A random Participant name
@@ -21,6 +21,9 @@ export default function useConnectionDetails() {
       setConnectionDetails(null);
       const endpoint = process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
       const url = new URL(endpoint, window.location.origin);
+      if (!opts?.ticket && opts?.profile?.display_name) {
+        url.searchParams.set('display_name', opts.profile.display_name);
+      }
 
       const res = await fetch(url.toString(), {
         method: opts?.ticket ? 'POST' : 'GET',
@@ -92,8 +95,9 @@ export default function useConnectionDetails() {
   }, []);
 
   useEffect(() => {
+    if (options?.autoFetch === false) return;
     fetchConnectionDetails();
-  }, [fetchConnectionDetails]);
+  }, [fetchConnectionDetails, options?.autoFetch]);
 
   return {
     connectionDetails,
