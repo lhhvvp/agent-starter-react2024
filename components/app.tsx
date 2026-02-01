@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Room, RoomEvent } from 'livekit-client';
 import { motion } from 'motion/react';
@@ -79,7 +79,7 @@ interface MeConversationsCreateResponse {
 }
 
 export function App({ appConfig, mode = 'ticket', sessionUser }: AppProps) {
-  const room = useMemo(() => new Room(), []);
+  const [room, setRoom] = useState(() => new Room());
   const [sessionStarted, setSessionStarted] = useState(mode === 'public');
   const insecureContextToastShownRef = useRef(false);
   const [startPayload, setStartPayload] = useState<{
@@ -99,6 +99,15 @@ export function App({ appConfig, mode = 'ticket', sessionUser }: AppProps) {
   const isMeMode = mode === 'me';
   const isPublicUnauthed = mode === 'public' && !sessionUser;
   const showSidebar = !isPublicUnauthed;
+
+  const resetRoomForNewSession = useCallback(() => {
+    setRoom((prev) => {
+      try {
+        prev.disconnect();
+      } catch {}
+      return new Room();
+    });
+  }, []);
 
   // 控制侧边栏文字在展开动画结束后再显示，避免宽度很窄时文字竖排闪烁
   useEffect(() => {
@@ -283,6 +292,7 @@ export function App({ appConfig, mode = 'ticket', sessionUser }: AppProps) {
 
       const participantName = conn.participantName ?? 'guest';
 
+      resetRoomForNewSession();
       setConnectionDetailsExternal({
         serverUrl: conn.serverUrl,
         roomName: conn.roomName,
@@ -310,6 +320,7 @@ export function App({ appConfig, mode = 'ticket', sessionUser }: AppProps) {
     prefillMessage?: string;
   }) {
     setStartPayload(opts ?? null);
+    resetRoomForNewSession();
     setSessionStarted(true);
     const displayName = opts?.displayName?.trim();
     void refreshConnectionDetails(
@@ -583,9 +594,10 @@ function AppShell({
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed(false)}
-                className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full border"
-                title="Open sidebar"
+                className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted mx-auto mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full border"
                 aria-label="展开侧边栏"
+                data-tooltip="Open sidebar"
+                data-side="right"
               >
                 <CaretDoubleRight className="h-4 w-4" />
               </button>
@@ -593,7 +605,9 @@ function AppShell({
               {/* Brand (ChatGPT-like) */}
               <a
                 href="/"
-                className="hover:bg-muted mb-4 flex items-center justify-center gap-2 rounded-lg px-2 py-2"
+                className="lk-tooltip hover:bg-muted mb-4 flex items-center justify-center gap-2 rounded-lg px-2 py-2"
+                data-tooltip={appConfig.pageTitle}
+                data-side="right"
               >
                 <img
                   src="/yulin-mhsa-mark.svg"
@@ -631,9 +645,10 @@ function AppShell({
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed(true)}
-                className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
-                title="Close sidebar"
+                className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
                 aria-label="折叠侧边栏"
+                data-tooltip="Close sidebar"
+                data-side="right"
               >
                 <CaretDoubleLeft className="h-4 w-4" />
               </button>
@@ -645,8 +660,10 @@ function AppShell({
               type="button"
               className={cn(
                 'hover:bg-muted flex w-full items-center rounded-md px-3 py-2',
-                sidebarCollapsed ? 'text-foreground' : 'text-foreground gap-2 text-left font-medium'
+                sidebarCollapsed ? 'lk-tooltip text-foreground' : 'text-foreground gap-2 text-left font-medium'
               )}
+              data-tooltip={sidebarCollapsed ? 'Chats' : undefined}
+              data-side={sidebarCollapsed ? 'right' : undefined}
             >
               <ChatsCircle className="h-4 w-4" weight="fill" />
               {sidebarLabelsVisible && <span>会话</span>}
@@ -659,9 +676,11 @@ function AppShell({
                 className={cn(
                   'hover:bg-muted flex w-full items-center rounded-md px-3 py-2',
                   sidebarCollapsed
-                    ? 'text-muted-foreground'
+                    ? 'lk-tooltip text-muted-foreground'
                     : 'text-muted-foreground gap-2 text-left'
                 )}
+                data-tooltip={sidebarCollapsed ? 'New chat' : undefined}
+                data-side={sidebarCollapsed ? 'right' : undefined}
               >
                 <PlusCircle className="h-4 w-4" />
                 {sidebarLabelsVisible && (
@@ -673,8 +692,12 @@ function AppShell({
               type="button"
               className={cn(
                 'hover:bg-muted hover:text-foreground flex w-full items-center rounded-md px-3 py-2',
-                sidebarCollapsed ? 'text-muted-foreground' : 'text-muted-foreground gap-2 text-left'
+                sidebarCollapsed
+                  ? 'lk-tooltip text-muted-foreground'
+                  : 'text-muted-foreground gap-2 text-left'
               )}
+              data-tooltip={sidebarCollapsed ? 'Timeline' : undefined}
+              data-side={sidebarCollapsed ? 'right' : undefined}
             >
               <ClockCounterClockwise className="h-4 w-4" />
               {sidebarLabelsVisible && <span>时间线</span>}
@@ -683,8 +706,12 @@ function AppShell({
               type="button"
               className={cn(
                 'hover:bg-muted hover:text-foreground flex w-full items-center rounded-md px-3 py-2',
-                sidebarCollapsed ? 'text-muted-foreground' : 'text-muted-foreground gap-2 text-left'
+                sidebarCollapsed
+                  ? 'lk-tooltip text-muted-foreground'
+                  : 'text-muted-foreground gap-2 text-left'
               )}
+              data-tooltip={sidebarCollapsed ? 'Workspace' : undefined}
+              data-side={sidebarCollapsed ? 'right' : undefined}
             >
               <SquaresFour className="h-4 w-4" />
               {sidebarLabelsVisible && <span>工作区</span>}
@@ -711,11 +738,13 @@ function AppShell({
                 }}
                 className={cn(
                   'border-border/60 bg-background/60 hover:bg-muted flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left',
-                  sidebarCollapsed && 'justify-center px-2',
+                  sidebarCollapsed && 'lk-tooltip justify-center px-2',
                   accountMenuOpen && !sidebarCollapsed && 'bg-muted'
                 )}
                 aria-label="Account"
                 aria-expanded={accountMenuOpen}
+                data-tooltip={sidebarCollapsed ? 'Account' : undefined}
+                data-side={sidebarCollapsed ? 'right' : undefined}
               >
                 <div className="border-border/60 bg-background/70 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-semibold">
                   {avatarText}
@@ -763,9 +792,10 @@ function AppShell({
                         onClick={() => {
                           toastAlert({ title: '未实现', description: '暂未提供新增工作区能力' });
                         }}
-                        className="border-border/60 bg-background/50 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
-                        title="Add workspace"
+                        className="lk-tooltip border-border/60 bg-background/50 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
                         aria-label="Add workspace"
+                        data-tooltip="Add workspace"
+                        data-side="right"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -918,8 +948,10 @@ function AppShell({
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(true)}
-                  className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border md:hidden"
+                  className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border md:hidden"
                   aria-label="打开侧边栏"
+                  data-tooltip="Open sidebar"
+                  data-side="bottom"
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -962,9 +994,10 @@ function AppShell({
                   </div>
                   <a
                     href="/terms"
-                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
                     aria-label="帮助"
-                    title="帮助"
+                    data-tooltip="Help"
+                    data-side="bottom"
                   >
                     <Question className="h-4 w-4" />
                   </a>
@@ -974,16 +1007,20 @@ function AppShell({
                   <button
                     type="button"
                     onClick={handleShare}
-                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
                     aria-label="分享"
+                    data-tooltip="Share"
+                    data-side="bottom"
                   >
                     <ShareNetwork className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={handleExport}
-                    className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
+                    className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border"
                     aria-label="导出"
+                    data-tooltip="Export"
+                    data-side="bottom"
                   >
                     <DownloadSimple className="h-4 w-4" />
                   </button>
@@ -992,11 +1029,13 @@ function AppShell({
                       type="button"
                       onClick={() => setSettingsOpen((v) => !v)}
                       className={cn(
-                        'border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border',
+                        'lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-9 w-9 items-center justify-center rounded-full border',
                         settingsOpen && 'bg-muted text-foreground'
                       )}
                       aria-label="设置"
                       aria-expanded={settingsOpen}
+                      data-tooltip="Settings"
+                      data-side="bottom"
                     >
                       <GearSix className="h-4 w-4" />
                     </button>
@@ -1013,8 +1052,10 @@ function AppShell({
                           <button
                             type="button"
                             onClick={() => setSettingsOpen(false)}
-                            className="border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
+                            className="lk-tooltip border-border/60 bg-background/40 text-muted-foreground hover:bg-muted inline-flex h-8 w-8 items-center justify-center rounded-full border"
                             aria-label="关闭设置"
+                            data-tooltip="Close"
+                            data-side="left"
                           >
                             <X className="h-4 w-4" />
                           </button>

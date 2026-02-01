@@ -242,12 +242,16 @@ export const SessionView = ({
 
   return (
     // 整个 SessionView 占满可用高度（由外层 AppShell 控制），页面本身不再滚动，只在内部滚动
-    <main ref={ref} inert={disabled} className={cn('h-full', !chatOpen && 'overflow-hidden')}>
+    <main
+      ref={ref}
+      inert={disabled}
+      className={cn('h-full min-h-0', !chatOpen && 'overflow-hidden')}
+    >
       {/* 内部容器固定填满 main，高度不再额外增加 padding，避免把底部 chatbox 推出视口 */}
       <div className="mx-auto h-full w-full">
         <div
           ref={layoutRef}
-          className="relative grid h-full"
+          className="relative grid h-full min-h-0 grid-rows-1"
           style={
             canvasOpen || workspaceOpen
               ? {
@@ -261,7 +265,7 @@ export const SessionView = ({
           {/* Ensure UI Blocks TextStream/Chat handlers are registered early */}
           <UIBlocksBootstrap />
           {/* 左列：完整 SessionView 会话体验 */}
-          <div className="relative">
+          <div className="relative min-h-0">
             <ConversationPane
               appConfig={appConfig}
               sessionStarted={sessionStarted}

@@ -241,7 +241,9 @@ export function AgentControlBar({
               pressed={chatOpen}
               onPressedChange={setChatOpen}
               disabled={!capabilities.supportsChatInput}
-              className="aspect-square h-full"
+              className="lk-tooltip aspect-square h-full"
+              data-tooltip="Toggle chat"
+              data-side="top"
             >
               <ChatTextIcon weight="bold" />
             </Toggle>

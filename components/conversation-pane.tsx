@@ -144,7 +144,7 @@ export function ConversationPane({
   return (
     <div
       data-scroll-container
-      className={cn('relative h-full overflow-y-auto', className)}
+      className={cn('relative h-full min-h-0 overflow-y-auto overscroll-contain', className)}
       {...props}
     >
       {/* Chat timeline */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function BgDemoPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean | null>(null);
@@ -45,20 +46,24 @@ export default function BgDemoPage() {
 
   return (
     <div className="relative isolate h-svh w-full overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden login-bg-root">
-        <div className="login-bg-base" />
-        <div className="login-bg-blobs">
-          <div className="login-bg-blob login-bg-blob-1" />
-          <div className="login-bg-blob login-bg-blob-2" />
-          <div className="login-bg-blob login-bg-blob-3" />
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="aurora-bg-base" />
+        <div className="aurora-bg-beams">
+          <div className="aurora-beam aurora-beam-1" />
+          <div className="aurora-beam aurora-beam-2" />
+          <div className="aurora-beam aurora-beam-3" />
         </div>
-        <div className="login-bg-noise" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.0),rgba(255,255,255,0.82))] dark:bg-[linear-gradient(to_bottom,rgba(0,0,0,0.0),rgba(0,0,0,0.68))]" />
+        <div className="aurora-bg-noise" />
+        <div className="aurora-bg-vignette" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.0),rgba(255,255,255,0.92))] dark:bg-[linear-gradient(to_bottom,rgba(0,0,0,0.0),rgba(0,0,0,0.72))]" />
       </div>
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-2xl flex-col justify-center gap-4 px-6">
         <div className="rounded-2xl border border-border/60 bg-background/75 p-5 shadow-sm backdrop-blur">
-          <div className="text-lg font-semibold">Background Demo</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-lg font-semibold">Background Demo</div>
+            <ThemeToggle className="border-border/60 bg-background/40 w-[108px]" />
+          </div>
           <div className="text-muted-foreground mt-1 text-sm">
             当前浏览器 prefers-reduced-motion：{prefersReducedMotion === null ? '…' : String(prefersReducedMotion)}
           </div>
